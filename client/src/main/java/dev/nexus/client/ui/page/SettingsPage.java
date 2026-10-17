@@ -9,12 +9,15 @@ import dev.nexus.client.ui.component.Button;
 import dev.nexus.client.ui.component.ScrollPanel;
 import dev.nexus.client.ui.component.SectionHeader;
 import dev.nexus.client.ui.component.SettingRow;
+import dev.nexus.client.ui.vanilla.MenuBackground;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.util.Util;
 
 /** Global client settings (stored in client.json, shared by all profiles). */
 public final class SettingsPage extends Page {
     private final ScrollPanel list = new ScrollPanel().gap(3);
     private final Button reset;
+    private final Button photos;
     private boolean confirm;
     private long confirmUntil;
 
@@ -24,6 +27,8 @@ public final class SettingsPage extends Page {
         section("General", s.menuKey, s.pauseInMenu, s.tooltips);
         section("Theme", s.accentPreset, s.customAccent);
         section("Interface", s.uiScale, s.animationSpeed, s.backgroundBlur, s.backgroundDim);
+        section("Main menu background", s.menuBackground, s.slideDuration, s.photoMotion, s.photoParallax,
+                s.photoShuffle, s.photoDim);
         section("HUD", s.hudHideInDebug, s.hudAccentLine, s.hudRadius, s.hudTextShadow);
         section("HUD Editor", s.editorSnap, s.editorShowGrid, s.editorGrid);
         // any settings added to ClientSettings later still appear
@@ -40,6 +45,9 @@ public final class SettingsPage extends Page {
         }
         reset = new Button("Reset client settings", Icon.RESET, Button.Style.DANGER, this::resetClicked)
                 .dynamicLabel(() -> confirm ? "Click again to reset" : "Reset client settings");
+        photos = new Button("Background photos", Icon.FOLDER, Button.Style.SECONDARY,
+                () -> Util.getOperatingSystem().open(MenuBackground.folder()))
+                .tooltip("Opens config/nexus/backgrounds - put PNG or JPG photos there");
     }
 
     private void section(String title, Setting<?>... settings) {
@@ -70,16 +78,19 @@ public final class SettingsPage extends Page {
         list.render(ctx, mx, my);
         reset.setBounds(x, footerY, reset.naturalWidth(), 20);
         reset.render(ctx, mx, my);
+        float pw = photos.naturalWidth();
+        photos.setBounds(x + width - pw, footerY, pw, 20);
+        photos.render(ctx, mx, my);
     }
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        return reset.mouseClicked(mx, my, button) || list.mouseClicked(mx, my, button);
+        return reset.mouseClicked(mx, my, button) || photos.mouseClicked(mx, my, button) || list.mouseClicked(mx, my, button);
     }
 
     @Override
     public boolean mouseReleased(double mx, double my, int button) {
-        boolean a = reset.mouseReleased(mx, my, button);
+        boolean a = reset.mouseReleased(mx, my, button) | photos.mouseReleased(mx, my, button);
         return list.mouseReleased(mx, my, button) || a;
     }
 

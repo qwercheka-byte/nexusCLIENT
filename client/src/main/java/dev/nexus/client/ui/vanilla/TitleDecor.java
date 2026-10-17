@@ -54,9 +54,14 @@ public final class TitleDecor {
         return 1.0F - inv * inv * inv;
     }
 
-    public void overlay(DrawContext ctx, int w, int h) {
+    public void overlay(DrawContext ctx, int w, int h, boolean photos) {
         float time = (float)(Util.getMeasuringTimeMs() % 1000000L) / 1000.0F;
-        Render2D.gradientV(ctx, 0.0F, 0.0F, w, h, -1945630451, -804648176);
+        if (photos) {
+            int dim = Math.round(Nexus.settings().photoDim.getFloat() * 255.0F);
+            if (dim > 0) Render2D.rect(ctx, 0.0F, 0.0F, w, h, dim << 24 | 0x07070B);
+        } else {
+            Render2D.gradientV(ctx, 0.0F, 0.0F, w, h, -1945630451, -804648176);
+        }
         float gx = w * (0.3F + 0.05F * (float)Math.sin(time * 0.21F));
         float gy = h * (0.3F + 0.04F * (float)Math.cos(time * 0.17F));
         Render2D.shadow(ctx, gx - 30.0F, gy - 30.0F, 60.0F, 60.0F, 30.0F, Math.max(w, h) * 0.32F, ColorUtil.withAlpha(Theme.accent(), 30));

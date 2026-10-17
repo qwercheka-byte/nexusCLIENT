@@ -46,6 +46,23 @@ public final class ClientSettings implements SettingContainer {
     public final NumberSetting backgroundDim = add(new NumberSetting("background_dim", "Background dim",
             "Darkening behind the menu", 0.45, 0.0, 0.9, 0.05).displayMultiplier(100).suffix("%"));
 
+    // --- Main menu background
+    public final ModeSetting menuBackground = add(new ModeSetting("menu_background", "Menu background",
+            "Photos from config/nexus/backgrounds (or the bundled ones) or the vanilla panorama", "Photos",
+            "Photos", "Panorama"));
+    public final NumberSetting slideDuration = add(new NumberSetting("slide_duration", "Photo duration",
+            "How long each photo is shown before the next one fades in", 9, 4, 30, 1).suffix("s"))
+            .visibleWhen(() -> menuBackground.is("Photos"));
+    public final BooleanSetting photoMotion = add(new BooleanSetting("photo_motion", "Photo motion",
+            "Slow zoom and pan of the photos (Ken Burns effect)", true)).visibleWhen(() -> menuBackground.is("Photos"));
+    public final BooleanSetting photoParallax = add(new BooleanSetting("photo_parallax", "Mouse parallax",
+            "The photo shifts slightly with the mouse", true)).visibleWhen(() -> menuBackground.is("Photos"));
+    public final BooleanSetting photoShuffle = add(new BooleanSetting("photo_shuffle", "Shuffle photos",
+            "Random order instead of alphabetical", true)).visibleWhen(() -> menuBackground.is("Photos"));
+    public final NumberSetting photoDim = add(new NumberSetting("photo_dim", "Photo dim",
+            "Darkening over the photos on the main menu", 0.25, 0.0, 0.8, 0.05).displayMultiplier(100).suffix("%"))
+            .visibleWhen(() -> menuBackground.is("Photos"));
+
     // --- HUD
     public final BooleanSetting hudHideInDebug = add(new BooleanSetting("hud_hide_debug", "Hide HUD with F3",
             "Hide NEXUS HUD elements while the debug screen is open", true));
