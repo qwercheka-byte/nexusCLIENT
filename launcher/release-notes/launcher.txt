@@ -1,0 +1,4 @@
+- Новая сборка для Windows без jar-файлов: «Nexus Launcher.exe» запускает классы из папки app\ на встроенной Java 21 + JavaFX (jlink)
+- Автообновление лаунчера и NEXUS Client — zip-пакетами с проверкой SHA-256; при сбое обновления возвращается прежняя версия
+- NEXUS Client поставляется только для Minecraft 1.21.11
+- Сборка из исходников без gradle-wrapper.jar (скрипты gradlew/gradlew.bat сами скачивают и проверяют Gradle)

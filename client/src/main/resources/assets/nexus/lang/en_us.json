@@ -1,0 +1,7 @@
+{
+  "nexus.title.open": "NEXUS Client",
+  "nexus.title.greeting.morning": "Good morning, %s",
+  "nexus.title.greeting.day": "Good afternoon, %s",
+  "nexus.title.greeting.evening": "Good evening, %s",
+  "nexus.title.greeting.night": "Good night, %s"
+}

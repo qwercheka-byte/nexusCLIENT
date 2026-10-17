@@ -1,0 +1,370 @@
+plugins {
+    id 'java'
+}
+
+group = project.group_id
+version = project.launcher_version
+
+repositories {
+    mavenCentral()
+}
+
+def fxVersion = project.javafx_version
+def fxModules = ['base', 'graphics', 'controls']
+def gsonDep = "com.google.code.gson:gson:${project.gson_version}"
+
+/** JavaFX classifier of the machine running Gradle (used for compiling and ./gradlew run). */
+static String hostFxPlatform() {
+    def os = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+    def arch = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+    if (os.contains('win')) return 'win'
+    if (os.contains('mac')) return (arch == 'aarch64' || arch == 'arm64') ? 'mac-aarch64' : 'mac'
+    return (arch == 'aarch64' || arch == 'arm64') ? 'linux-aarch64' : 'linux'
+}
+
+dependencies {
+    implementation gsonDep
+    fxModules.each { implementation "org.openjfx:javafx-${it}:${fxVersion}:${hostFxPlatform()}" }
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+}
+
+/*
+ * NEXUS Client (the Fabric mod) is built from the sibling project ../client (override: -Pclient_dir=...).
+ * Its version and Minecraft version are read from ../client/gradle.properties, so they cannot drift apart.
+ */
+def clientDir = file(project.findProperty('client_dir') ?: '../client')
+def clientProps = new Properties()
+def clientPropsFile = new File(clientDir, 'gradle.properties')
+if (!clientPropsFile.isFile()) throw new GradleException("NEXUS Client project not found: ${clientDir} (set -Pclient_dir=...)")
+clientPropsFile.withInputStream { clientProps.load(it) }
+def clientVersion = clientProps.getProperty('mod_version')
+def clientMc = clientProps.getProperty('minecraft_version')
+def clientPackageName = "nexus-client-${clientVersion}+mc${clientMc}.zip"
+
+def buildProps = [
+        version    : project.version.toString(),
+        javafx     : fxVersion,
+        nexusClient: clientVersion,
+        updateRepo : project.findProperty('update_github_repo') ?: '',
+        updateUrl  : project.findProperty('update_url') ?: '',
+]
+def isWindowsHost = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win')
+
+/** Builds the mod package ../client/build/libs/nexus-client-<v>+mc<mc>.zip with the client's own Gradle script. */
+tasks.register('buildClient', Exec) {
+    group = 'nexus'
+    description = 'Builds the NEXUS Client mod package in the client project'
+    def out = new File(clientDir, "build/libs/${clientPackageName}")
+    inputs.dir(new File(clientDir, 'src'))
+    inputs.files(new File(clientDir, 'build.gradle'), clientPropsFile)
+    outputs.file(out)
+    workingDir clientDir
+    commandLine(isWindowsHost ? ['cmd', '/c', 'gradlew.bat', 'remapJar'] : ['sh', './gradlew', 'remapJar'])
+}
+
+/* The mod package is shipped inside the launcher as a resource: app/bundled/nexus-client-<v>+mc<mc>.zip */
+def clientPackageOverride = project.findProperty('clientPackage')
+processResources {
+    inputs.properties buildProps
+    filesMatching('dev/nexus/launcher/build.properties') {
+        expand buildProps
+    }
+    if (clientPackageOverride) {
+        from(file(clientPackageOverride)) { into 'bundled'; rename { clientPackageName } }
+    } else {
+        from(tasks.named('buildClient')) { into 'bundled' }
+    }
+}
+
+// No jar is built: the launcher is shipped as plain class files (app/) next to a jlink runtime.
+tasks.named('jar') { enabled = false }
+
+/** Development start on any OS with the JavaFX of the machine running Gradle. */
+tasks.register('run', JavaExec) {
+    group = 'application'
+    description = 'Starts the launcher from the compiled classes (development)'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.nexus.launcher.Main'
+}
+
+/*
+ * Windows distribution (the only published platform). Nothing in it is a jar file:
+ *
+ *   Nexus Launcher.exe   native starter (packaging/windows/launcher, MinGW-w64)
+ *   app/                 launcher classes + Gson classes + resources (incl. bundled/nexus-client-*.zip)
+ *   runtime/             Java 21 runtime image with JavaFX, made with jlink from the Windows jmods
+ *   LICENSE
+ *
+ *   ./gradlew stageWin       -> build/win/stage
+ *   ./gradlew portableWin    -> build/distributions/Nexus Launcher.zip
+ *   ./gradlew installerWin   -> build/distributions/Nexus Launcher.exe   (NSIS installer)
+ *   ./gradlew appPackageWin  -> build/distributions/nexus-launcher-<ver>-app.zip   (auto-update package)
+ *
+ * Needs: x86_64-w64-mingw32-gcc/-windres (Debian/Ubuntu: gcc-mingw-w64-x86-64, Windows: MSYS2), NSIS 3 (makensis)
+ * for the installer. Another MinGW prefix: -Pmingw_prefix=...
+ *
+ * jlink only accepts jmods of exactly its own Java version, so the Windows JDK (jmods) of the same Temurin release
+ * as the JDK running jlink is downloaded (api.adoptium.net), plus the Windows JavaFX jmods (Gluon).
+ */
+def mingw = (project.findProperty('mingw_prefix') ?: 'x86_64-w64-mingw32-').toString()
+def winDir = layout.buildDirectory.dir('win').get().asFile
+def dlDir = layout.buildDirectory.dir('downloads').get().asFile
+def verParts = (project.version.toString() =~ /\d+/).findAll().collect { it as int } + [0, 0, 0]
+def exeName = 'Nexus Launcher.exe'
+
+def jlinkLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+def jdkHome = { jlinkLauncher.get().metadata.installationPath.asFile }
+/** Temurin release name of the JDK running jlink, e.g. jdk-21.0.12.1+1 (from its "release" file). */
+def jdkReleaseName = {
+    def props = new Properties()
+    new File(jdkHome(), 'release').withInputStream { props.load(it) }
+    def v = props.getProperty('JAVA_RUNTIME_VERSION', '').replace('"', '').replaceAll(/-LTS$/, '')
+    if (!v) throw new GradleException("Cannot read JAVA_RUNTIME_VERSION of ${jdkHome()}")
+    "jdk-${v}"
+}
+def winJdkZip = new File(dlDir, 'windows-jdk.zip')
+def fxJmodsZip = new File(dlDir, "openjfx-${fxVersion}_windows-x64_bin-jmods.zip")
+
+tasks.register('downloadWinJdk') {
+    group = 'distribution'
+    description = 'Downloads the Windows x64 Temurin JDK matching the local jlink (for its jmods)'
+    outputs.file(winJdkZip)
+    inputs.property('release', jdkReleaseName())
+    doLast {
+        dlDir.mkdirs()
+        def url = "https://api.adoptium.net/v3/binary/version/${URLEncoder.encode(jdkReleaseName(), 'UTF-8')}/windows/x64/jdk/hotspot/normal/eclipse?project=jdk"
+        println "Downloading ${url}"
+        ant.get(src: url, dest: winJdkZip, skipexisting: true)
+    }
+}
+
+tasks.register('downloadFxJmodsWin') {
+    group = 'distribution'
+    description = 'Downloads the JavaFX jmods for Windows x64'
+    outputs.file(fxJmodsZip)
+    doLast {
+        dlDir.mkdirs()
+        ant.get(src: "https://download2.gluonhq.com/openjfx/${fxVersion}/openjfx-${fxVersion}_windows-x64_bin-jmods.zip", dest: fxJmodsZip, skipexisting: true)
+    }
+}
+
+def jmodsDir = new File(winDir, 'jmods')
+tasks.register('extractJmodsWin', Sync) {
+    group = 'distribution'
+    dependsOn 'downloadWinJdk', 'downloadFxJmodsWin'
+    into jmodsDir
+    from({ zipTree(winJdkZip) }) { include '*/jmods/*.jmod' }
+    from({ zipTree(fxJmodsZip) }) { include '*/*.jmod' }
+    eachFile { it.path = it.name }
+    includeEmptyDirs = false
+}
+
+/** Modules of the runtime image: what the launcher needs (checked with jdeps) plus TLS/locales/charsets. */
+def runtimeModules = ['java.base', 'java.desktop', 'java.logging', 'java.net.http', 'java.sql', 'java.xml', 'jdk.management',
+                      'jdk.unsupported', 'jdk.crypto.ec', 'jdk.charsets', 'jdk.localedata', 'jdk.zipfs',
+                      'javafx.base', 'javafx.graphics', 'javafx.controls']
+def runtimeDir = new File(winDir, 'runtime')
+tasks.register('jlinkWin', Exec) {
+    group = 'distribution'
+    description = 'Creates the Windows Java 21 + JavaFX runtime image with jlink'
+    dependsOn 'extractJmodsWin'
+    inputs.dir(jmodsDir)
+    inputs.property('modules', runtimeModules)
+    outputs.dir(runtimeDir)
+    doFirst { project.delete(runtimeDir) }
+    executable = new File(jdkHome(), "bin/jlink${isWindowsHost ? '.exe' : ''}").absolutePath
+    args '--module-path', jmodsDir.absolutePath,
+            '--add-modules', runtimeModules.join(','),
+            '--include-locales=en,ru',
+            '--strip-debug', '--no-header-files', '--no-man-pages', '--compress=zip-6',
+            '--output', runtimeDir.absolutePath
+    doLast {
+        // jlink always copies two jars that this runtime never loads: lib/jrt-fs.jar (jrt:/ file system provider for
+        // *other* JDKs reading this image) and lib/javafx-swt.jar (JavaFX inside SWT apps). Remove them: no jars.
+        ['lib/jrt-fs.jar', 'lib/javafx-swt.jar'].each { project.delete(new File(runtimeDir, it)) }
+        def jars = project.fileTree(runtimeDir) { include '**/*.jar' }.files
+        if (!jars.isEmpty()) throw new GradleException("Unexpected jar files in the runtime image: ${jars}")
+    }
+}
+
+def appDir = new File(winDir, 'app')
+/** app/: compiled classes and resources of the launcher plus the Gson classes, unpacked. */
+tasks.register('appWin', Sync) {
+    group = 'distribution'
+    description = 'Assembles the app folder (class files, no jar)'
+    dependsOn 'classes'
+    into appDir
+    from sourceSets.main.output
+    from({ configurations.runtimeClasspath.filter { it.name.startsWith('gson-') }.collect { zipTree(it) } }) {
+        exclude 'module-info.class', 'META-INF/versions/**', 'META-INF/MANIFEST.MF', 'META-INF/maven/**'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    doLast {
+        def jars = project.fileTree(appDir) { include '**/*.jar' }.files
+        if (!jars.isEmpty()) throw new GradleException("app/ must not contain jar files: ${jars}")
+    }
+}
+
+tasks.register('winLauncherRes', Exec) {
+    group = 'distribution'
+    description = 'Compiles the resources (icon, version, manifest) of Nexus Launcher.exe'
+    def src = file('packaging/windows/launcher')
+    def out = new File(winDir, 'NexusLauncher.res')
+    inputs.dir(src)
+    inputs.file('packaging/windows/nexus.ico')
+    inputs.property('version', project.version.toString())
+    outputs.file(out)
+    workingDir src
+    doFirst { winDir.mkdirs() }
+    commandLine "${mingw}windres", "-DVERSION_MAJOR=${verParts[0]}", "-DVERSION_MINOR=${verParts[1]}",
+            "-DVERSION_PATCH=${verParts[2]}", "-DVERSION_STR=\\\"${project.version}\\\"",
+            'NexusLauncher.rc', '-O', 'coff', '-o', out.absolutePath
+}
+
+tasks.register('winLauncherExe', Exec) {
+    group = 'distribution'
+    description = 'Builds the native Windows starter "Nexus Launcher.exe" (MinGW-w64)'
+    dependsOn 'winLauncherRes'
+    def src = file('packaging/windows/launcher/NexusLauncher.c')
+    def res = new File(winDir, 'NexusLauncher.res')
+    def out = new File(winDir, exeName)
+    inputs.files(src, res)
+    outputs.file(out)
+    commandLine "${mingw}gcc", '-O2', '-s', '-Wall', '-municode', '-mwindows', '-o', out.absolutePath, src.absolutePath, res.absolutePath
+}
+
+def stageDir = new File(winDir, 'stage')
+/** The Windows program folder: Nexus Launcher.exe, app\, runtime\, LICENSE. */
+tasks.register('stageWin', Sync) {
+    group = 'distribution'
+    description = 'Assembles the Windows program folder in build/win/stage'
+    dependsOn 'appWin', 'jlinkWin', 'winLauncherExe'
+    into stageDir
+    includeEmptyDirs = false
+    // jlink marks some files read-only; Windows ignores these bits, but a re-sync could not overwrite them
+    filePermissions { unix(0644) }
+    dirPermissions { unix(0755) }
+    from(new File(winDir, exeName))
+    from('LICENSE')
+    into('app') { from(appDir) }
+    into('runtime') { from(runtimeDir) }
+    doLast {
+        def jars = project.fileTree(stageDir) { include '**/*.jar' }.files
+        if (!jars.isEmpty()) throw new GradleException("The Windows build must not contain jar files: ${jars}")
+    }
+}
+
+tasks.register('portableWin', Zip) {
+    group = 'distribution'
+    description = 'Nexus Launcher.zip: portable Windows x64 folder with the bundled runtime'
+    dependsOn 'stageWin'
+    archiveFileName = 'Nexus Launcher.zip'
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    into('Nexus Launcher') { from(stageDir) }
+}
+
+tasks.register('appPackageWin', Zip) {
+    group = 'distribution'
+    description = 'Auto-update package: the contents of app/ (classes and resources)'
+    dependsOn 'appWin'
+    archiveFileName = "nexus-launcher-${project.version}-app.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from(appDir)
+}
+
+tasks.register('installerWin', Exec) {
+    group = 'distribution'
+    description = 'Nexus Launcher.exe installer (NSIS): per-user install, Start menu / desktop shortcuts, uninstaller'
+    dependsOn 'stageWin'
+    def out = layout.buildDirectory.file("distributions/${exeName}").get().asFile
+    inputs.dir(stageDir)
+    inputs.files(fileTree('packaging/windows') { include '*.nsi', '*.ico', '*.bmp' })
+    outputs.file(out)
+    doFirst { out.parentFile.mkdirs() }
+    commandLine 'makensis', '-V2', "-DVERSION=${project.version}", "-DSTAGE=${stageDir.absolutePath}",
+            "-DOUTFILE=${out.absolutePath}", file('packaging/windows/installer.nsi').absolutePath
+}
+
+/*
+ * Everything a release needs, in build/release:
+ *
+ *   ./gradlew release
+ *     Nexus Launcher.exe        installer          -> GitHub release asset
+ *     Nexus Launcher.zip        portable folder    -> GitHub release asset
+ *     nexus-update.json         update manifest    -> GitHub release asset
+ *     updates/nexus-launcher-<ver>-app.zip         -> folder updates/ of the repository (branch main)
+ *     updates/nexus-client-<ver>-mc<mc>.zip        -> folder updates/ of the repository (branch main)
+ *
+ * With update_github_repo set, the manifest points to https://raw.githubusercontent.com/<repo>/main/updates/<file>;
+ * otherwise the URLs are relative ("updates/<file>") and build/release can be uploaded to any web server as is.
+ * Changelogs: release-notes/launcher.txt and release-notes/client.txt.
+ */
+tasks.register('release') {
+    group = 'distribution'
+    description = 'Builds build/release (installer, portable zip, update packages, nexus-update.json)'
+    dependsOn 'portableWin', 'installerWin', 'appPackageWin'
+    if (!clientPackageOverride) dependsOn 'buildClient'
+    def outDir = layout.buildDirectory.dir('release').get().asFile
+    def notesDir = file('release-notes')
+    def launcherVersion = project.version.toString()
+    def repo = (project.findProperty('update_github_repo') ?: '').toString().trim()
+    def distDir = layout.buildDirectory.dir('distributions').get().asFile
+    def clientPackage = clientPackageOverride ? file(clientPackageOverride) : new File(clientDir, "build/libs/${clientPackageName}")
+    outputs.dir(outDir)
+    outputs.upToDateWhen { false }
+    doLast {
+        project.delete(outDir)
+        def updDir = new File(outDir, 'updates')
+        updDir.mkdirs()
+        def sha256 = { File f ->
+            def md = java.security.MessageDigest.getInstance('SHA-256')
+            f.withInputStream { is -> byte[] buf = new byte[65536]; int n; while ((n = is.read(buf)) > 0) md.update(buf, 0, n) }
+            md.digest().encodeHex().toString()
+        }
+        def urlOf = { String name -> repo ? "https://raw.githubusercontent.com/${repo}/main/updates/${name}".toString() : "updates/${name}".toString() }
+        def entry = { File f -> [url: urlOf(f.name), sha256: sha256(f), size: f.length()] }
+        def notes = { String name -> def f = new File(notesDir, name); f.exists() ? f.getText('UTF-8').trim() : '' }
+        def copy = { File src, File dst ->
+            if (!src.isFile()) throw new GradleException("Missing ${src}")
+            java.nio.file.Files.copy(src.toPath(), dst.toPath())
+            dst
+        }
+
+        copy(new File(distDir, exeName), new File(outDir, exeName))
+        copy(new File(distDir, 'Nexus Launcher.zip'), new File(outDir, 'Nexus Launcher.zip'))
+        def appZip = copy(new File(distDir, "nexus-launcher-${launcherVersion}-app.zip"), new File(updDir, "nexus-launcher-${launcherVersion}-app.zip"))
+        // no "+" in published names: GitHub and many web servers mangle it
+        def clientZip = copy(clientPackage, new File(updDir, "nexus-client-${clientVersion}-mc${clientMc}.zip"))
+
+        def manifest = [schema: 1]
+        if (repo) manifest.page = "https://github.com/${repo}/releases/latest".toString()
+        // "win-app" (not "win"): launchers 1.0.0/1.0.1 cannot install the new layout and offer a manual download instead
+        manifest.launcher = [version: launcherVersion, changelog: notes('launcher.txt'), files: ['win-app': entry(appZip)]]
+        manifest.client = [version: clientVersion, changelog: notes('client.txt'), files: [(clientMc): entry(clientZip)]]
+        def json = new groovy.json.JsonGenerator.Options().disableUnicodeEscaping().build().toJson(manifest)
+        // prettyPrint escapes non-ASCII as \\uXXXX; turn those back into characters for a readable changelog
+        def pretty = groovy.json.JsonOutput.prettyPrint(json).replaceAll(/(?<!\\)((?:\\\\)*)\\u([0-9a-fA-F]{4})/) { all, bs, hex ->
+            int cp = Integer.parseInt(hex, 16)
+            cp >= 0x80 ? bs + new String(Character.toChars(cp)) : all
+        }
+        new File(outDir, 'nexus-update.json').setText(pretty, 'UTF-8')
+
+        def jars = project.fileTree(outDir) { include '**/*.jar' }.files
+        if (!jars.isEmpty()) throw new GradleException("Release must not contain jar files: ${jars}")
+        println "Release files in ${outDir}:"
+        project.fileTree(outDir).files.sort { it.path }.each { println "  ${outDir.toPath().relativize(it.toPath())}  (${it.length()} bytes)" }
+        if (repo) {
+            println "\n1) commit build/release/updates/* into updates/ of ${repo} (branch main) and push"
+            println "2) create release v${launcherVersion} (latest) with \"${exeName}\", \"Nexus Launcher.zip\" and nexus-update.json"
+        }
+    }
+}

@@ -1,2 +1,0 @@
-- Windows: настоящий NexusLauncher.exe вместо NexusLauncher.bat (без консольного окна, со своей иконкой)
-- Windows: установщик «Nexus Launcher.exe» — ярлыки на рабочем столе и в меню «Пуск», удаление через «Приложения»
