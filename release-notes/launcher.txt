@@ -1,0 +1,2 @@
+- Первая версия NEXUS Launcher
+- Автообновление лаунчера и NEXUS Client

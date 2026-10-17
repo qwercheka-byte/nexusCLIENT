@@ -1,0 +1,251 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = project.group_id
+version = project.launcher_version
+
+repositories {
+    mavenCentral()
+}
+
+def fxVersion = project.javafx_version
+def fxModules = ['base', 'graphics', 'controls']
+def gsonDep = "com.google.code.gson:gson:${project.gson_version}"
+
+/** JavaFX classifier of the machine running Gradle (used for compiling and ./gradlew run). */
+static String hostFxPlatform() {
+    def os = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+    def arch = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+    if (os.contains('win')) return 'win'
+    if (os.contains('mac')) return (arch == 'aarch64' || arch == 'arm64') ? 'mac-aarch64' : 'mac'
+    return (arch == 'aarch64' || arch == 'arm64') ? 'linux-aarch64' : 'linux'
+}
+
+dependencies {
+    implementation gsonDep
+    fxModules.each { implementation "org.openjfx:javafx-${it}:${fxVersion}:${hostFxPlatform()}" }
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+}
+
+def buildProps = [
+        version    : project.version.toString(),
+        javafx     : fxVersion,
+        nexusClient: project.nexus_client_version,
+        updateRepo : project.findProperty('update_github_repo') ?: '',
+        updateUrl  : project.findProperty('update_url') ?: '',
+]
+processResources {
+    inputs.properties buildProps
+    filesMatching('dev/nexus/launcher/build.properties') {
+        expand buildProps
+    }
+}
+
+application {
+    mainClass = 'dev.nexus.launcher.Main'
+}
+
+tasks.named('jar') {
+    manifest { attributes 'Main-Class': 'dev.nexus.launcher.Main', 'Implementation-Version': project.version }
+}
+
+/*
+ * Self-contained jars, one per platform: the launcher classes + Gson + JavaFX for that OS.
+ * JavaFX ships different native libraries per OS, so a single jar for all systems is not possible
+ * (the macOS x64 and arm64 natives even share file names).
+ *
+ *   ./gradlew fatJarWin fatJarLinux fatJarMac fatJarMacArm   (or ./gradlew fatJars)
+ */
+def platforms = [Win: 'win', Linux: 'linux', Mac: 'mac', MacArm: 'mac-aarch64']
+platforms.each { taskSuffix, classifier ->
+    def cfg = configurations.create("fatRuntime${taskSuffix}") {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+    dependencies {
+        add(cfg.name, gsonDep)
+        fxModules.each { add(cfg.name, "org.openjfx:javafx-${it}:${fxVersion}:${classifier}") }
+    }
+    tasks.register("fatJar${taskSuffix}", Jar) {
+        group = 'distribution'
+        description = "Builds a runnable jar with JavaFX for ${classifier}"
+        archiveBaseName = 'nexus-launcher'
+        archiveClassifier = classifier
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        dependsOn tasks.named('classes')
+        from sourceSets.main.output
+        from({ cfg.collect { zipTree(it) } }) {
+            exclude 'module-info.class', 'META-INF/versions/*/module-info.class',
+                    'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/MANIFEST.MF'
+        }
+        manifest {
+            attributes 'Main-Class': 'dev.nexus.launcher.Main',
+                    'Implementation-Version': project.version,
+                    'Implementation-Title': 'NEXUS Launcher'
+        }
+    }
+}
+
+tasks.register('fatJars') {
+    group = 'distribution'
+    description = 'Builds runnable jars for every platform'
+    dependsOn platforms.keySet().collect { "fatJar${it}" }
+}
+
+/*
+ * Portable builds with a bundled Java runtime (Eclipse Temurin JRE 21 from api.adoptium.net),
+ * so the user does not need Java installed:
+ *
+ *   ./gradlew portableWin     -> build/distributions/NexusLauncher-<ver>-windows-x64.zip
+ *   ./gradlew portableLinux   -> build/distributions/NexusLauncher-<ver>-linux-x64.tar.gz
+ *
+ * The downloaded JRE archives are cached in build/jre.
+ */
+def jreArchive = { String os, String ext -> layout.buildDirectory.file("jre/temurin-21-jre-${os}-x64.${ext}").get().asFile }
+[[name: 'Win', os: 'windows', ext: 'zip'], [name: 'Linux', os: 'linux', ext: 'tar.gz']].each { p ->
+    tasks.register("downloadJre${p.name}") {
+        group = 'distribution'
+        description = "Downloads Temurin JRE 21 for ${p.os} x64"
+        def dest = jreArchive(p.os, p.ext)
+        outputs.file(dest)
+        doLast {
+            dest.parentFile.mkdirs()
+            ant.get(src: "https://api.adoptium.net/v3/binary/latest/21/ga/${p.os}/x64/jre/hotspot/normal/eclipse?project=jdk",
+                    dest: dest, skipexisting: true)
+        }
+    }
+}
+
+/** Removes the top-level "jdk-21.x.y+z-jre/" folder of the JRE archive while copying. */
+def stripJreRoot = { FileCopyDetails d -> d.path = d.path.replaceFirst('/runtime/[^/]+/', '/runtime/') }
+
+tasks.register('portableWin', Zip) {
+    group = 'distribution'
+    description = 'Windows x64 zip with a bundled Java runtime'
+    dependsOn 'fatJarWin', 'downloadJreWin'
+    archiveFileName = "NexusLauncher-${project.version}-windows-x64.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    includeEmptyDirs = false
+    into('NexusLauncher') {
+        from(tasks.named('fatJarWin')) { rename { 'nexus-launcher.jar' } }
+        from('packaging/windows')
+        from('LICENSE')
+        into('runtime') { from({ zipTree(jreArchive('windows', 'zip')) }) }
+    }
+    eachFile stripJreRoot
+}
+
+tasks.register('portableLinux', Tar) {
+    group = 'distribution'
+    description = 'Linux x64 tar.gz with a bundled Java runtime'
+    dependsOn 'fatJarLinux', 'downloadJreLinux'
+    archiveFileName = "NexusLauncher-${project.version}-linux-x64.tar.gz"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    compression = Compression.GZIP
+    includeEmptyDirs = false
+    into('NexusLauncher') {
+        from(tasks.named('fatJarLinux')) { rename { 'nexus-launcher.jar' } }
+        from('packaging/linux') { filePermissions { unix(0755) } }
+        from('LICENSE')
+        into('runtime') { from({ tarTree(jreArchive('linux', 'tar.gz')) }) }
+    }
+    eachFile stripJreRoot
+}
+
+/*
+ * Everything a release needs for auto-updates, in build/release:
+ *
+ *   ./gradlew release                  launcher jars for every platform + NEXUS Client jars + nexus-update.json
+ *   ./gradlew release -Pportable=true  additionally the portable Windows/Linux archives (downloads the JREs)
+ *
+ * Upload ALL files of build/release to one GitHub release (or next to each other on your hosting).
+ * NEXUS Client jars are taken from src/main/resources/bundled (nexus-client-<nexus_client_version>+mc<mc>.jar)
+ * or from -PclientJars=<dir>. Changelogs: release-notes/launcher.txt and release-notes/client.txt (optional).
+ * GitHub replaces "+" in asset names, so the client jars are published as nexus-client-<ver>-mc<mc>.jar.
+ */
+tasks.register('release') {
+    group = 'distribution'
+    description = 'Builds build/release with nexus-update.json for the auto-updater'
+    def withPortable = project.findProperty('portable') == 'true'
+    dependsOn 'fatJars'
+    if (withPortable) dependsOn 'portableWin', 'portableLinux'
+    def outDir = layout.buildDirectory.dir('release').get().asFile
+    def clientDir = file(project.findProperty('clientJars') ?: 'src/main/resources/bundled')
+    def notesDir = file('release-notes')
+    def launcherVersion = project.version.toString()
+    def clientVersion = project.nexus_client_version.toString()
+    def repo = (project.findProperty('update_github_repo') ?: '').toString().trim()
+    def libsDir = layout.buildDirectory.dir('libs').get().asFile
+    def distDir = layout.buildDirectory.dir('distributions').get().asFile
+    outputs.dir(outDir)
+    outputs.upToDateWhen { false }   // always rebuild: versions, notes and client jars come from properties/files
+    doLast {
+        project.delete(outDir)
+        outDir.mkdirs()
+        def sha256 = { File f ->
+            def md = java.security.MessageDigest.getInstance('SHA-256')
+            f.withInputStream { is -> byte[] buf = new byte[65536]; int n; while ((n = is.read(buf)) > 0) md.update(buf, 0, n) }
+            md.digest().encodeHex().toString()
+        }
+        def entry = { File f -> [url: f.name, sha256: sha256(f), size: f.length()] }
+        def notes = { String name -> def f = new File(notesDir, name); f.exists() ? f.getText('UTF-8').trim() : '' }
+
+        def launcherFiles = [:]
+        platforms.values().each { classifier ->
+            def src = new File(libsDir, "nexus-launcher-${launcherVersion}-${classifier}.jar")
+            if (!src.exists()) throw new GradleException("Missing ${src}")
+            def dst = new File(outDir, src.name)
+            java.nio.file.Files.copy(src.toPath(), dst.toPath())
+            launcherFiles[classifier] = entry(dst)
+        }
+
+        def clientFiles = [:]
+        def pattern = ~/nexus-client-(.+)\+mc(.+)\.jar/
+        (clientDir.listFiles() ?: []).sort { it.name }.each { File f ->
+            def m = pattern.matcher(f.name)
+            if (!m.matches()) return
+            if (m.group(1) != clientVersion) throw new GradleException("${f.name} does not match nexus_client_version=${clientVersion}")
+            def dst = new File(outDir, "nexus-client-${clientVersion}-mc${m.group(2)}.jar")
+            java.nio.file.Files.copy(f.toPath(), dst.toPath())
+            clientFiles[m.group(2)] = entry(dst)
+        }
+        if (clientFiles.isEmpty()) throw new GradleException("No nexus-client-${clientVersion}+mc*.jar in ${clientDir}")
+
+        if (withPortable) {
+            distDir.listFiles().findAll { it.name.contains(launcherVersion) }.each {
+                java.nio.file.Files.copy(it.toPath(), new File(outDir, it.name).toPath())
+            }
+        }
+
+        def manifest = [schema: 1]
+        if (repo) manifest.page = "https://github.com/${repo}/releases/latest".toString()
+        manifest.launcher = [version: launcherVersion, changelog: notes('launcher.txt'), files: launcherFiles]
+        manifest.client = [version: clientVersion, changelog: notes('client.txt'), files: clientFiles]
+        def json = new groovy.json.JsonGenerator.Options().disableUnicodeEscaping().build().toJson(manifest)
+        // prettyPrint escapes non-ASCII as \\uXXXX; turn those back into characters for a readable changelog
+        def pretty = groovy.json.JsonOutput.prettyPrint(json).replaceAll(/(?<!\\)((?:\\\\)*)\\u([0-9a-fA-F]{4})/) { all, bs, hex ->
+            int cp = Integer.parseInt(hex, 16)
+            cp >= 0x80 ? bs + new String(Character.toChars(cp)) : all
+        }
+        new File(outDir, 'nexus-update.json').setText(pretty, 'UTF-8')
+
+        println "Release files in ${outDir}:"
+        outDir.listFiles().sort { it.name }.each { println "  ${it.name}" }
+        if (repo) {
+            println "\nPublish (GitHub CLI):  gh release create v${launcherVersion} build/release/* --repo ${repo} --title \"NEXUS ${launcherVersion}\" --notes-file release-notes/launcher.txt"
+        } else {
+            println "\nSet update_github_repo (or update_url) in gradle.properties so that the launcher knows where to look."
+        }
+    }
+}
