@@ -1,6 +1,6 @@
 # NEXUS Launcher
 
-Лаунчер Minecraft: Java 21 + JavaFX, Windows / macOS / Linux, оформление в стиле NEXUS Client.
+Лаунчер Minecraft для **Windows 10/11 x64**: Java 21 + JavaFX, оформление в стиле NEXUS Client.
 
 ## Готовые файлы
 
@@ -8,14 +8,18 @@
 
 | Файл | Для чего | Нужна ли Java |
 |---|---|---|
-| `NexusLauncher-1.0.0-windows-x64.zip` | Windows 10/11 x64. Распаковать, запустить `NexusLauncher.bat` | нет, JRE 21 внутри (`runtime/`) |
-| `nexus-launcher-1.0.0-win.jar` | Windows, `java -jar` | Java 21+ |
-| `nexus-launcher-1.0.0-linux.jar` | Linux x64 | Java 21+ |
-| `nexus-launcher-1.0.0-mac.jar` | macOS Intel | Java 21+ |
-| `nexus-launcher-1.0.0-mac-aarch64.jar` | macOS Apple Silicon (M1+) | Java 21+ |
+| `NexusLauncher-1.0.1-windows-x64-setup.exe` | **Windows 10/11 x64, рекомендуется.** Установщик: ярлыки на рабочем столе и в «Пуске», удаление через «Приложения» | нет, JRE 21 внутри |
+| `NexusLauncher-1.0.1-windows-x64.zip` | Windows 10/11 x64 без установки. Распаковать, запустить `NexusLauncher.exe` | нет, JRE 21 внутри (`runtime/`) |
+| `nexus-launcher-1.0.1-win.jar` | Windows, `java -jar` | Java 21+ |
 
 JavaFX содержит свои нативные библиотеки для каждой ОС, поэтому jar-файлы раздельные.
-Linux-архив со встроенной JRE (`NexusLauncher-1.0.0-linux-x64.tar.gz`, около 60 МБ) в `releases/` не лежит, чтобы не раздувать рабочую папку. Он собирается командой `./gradlew portableLinux`.
+
+**Windows.** `NexusLauncher.exe` — маленькая нативная программа (≈50 КБ, исходник `packaging/windows/launcher/NexusLauncher.c`).
+Она запускает `runtime\bin\javaw.exe -jar nexus-launcher.jar` без консольного окна, а если папки `runtime` нет — Java из `JAVA_HOME` или `PATH`.
+Если файлов не хватает или Java падает сразу после старта, exe показывает понятное сообщение (на русском или английском, по языку Windows).
+Установщик ставит лаунчер только для текущего пользователя в `%LOCALAPPDATA%\Programs\NEXUS Launcher`, права администратора не нужны,
+и автообновление может менять файлы без UAC. Сборки, миры и аккаунты лежат отдельно (`%APPDATA%\.nexus-launcher`): переустановка их не трогает,
+а при удалении программа спрашивает, удалять ли их (по умолчанию — нет). Если лаунчер или игра запущены, установщик просит их закрыть.
 Java для **самой игры** лаунчер скачивает сам (официальные сборки Mojang: Java 8 / 17 / 21 / 25 в зависимости от версии).
 
 ## Возможности
@@ -62,8 +66,8 @@ Java для **самой игры** лаунчер скачивает сам (о
 3. Опишите изменения в `release-notes/launcher.txt` и `release-notes/client.txt`. Это текст окна «Что нового».
 4. Соберите релиз:
    ```
-   ./gradlew release                   # jar лаунчера для всех ОС + jar NEXUS Client + nexus-update.json
-   ./gradlew release -Pportable=true   # то же + portable-архивы для Windows/Linux (для новых игроков)
+   ./gradlew release                   # jar лаунчера + jar NEXUS Client + nexus-update.json
+   ./gradlew release -Pportable=true   # то же + установщик и portable-архив Windows (для новых игроков)
    ```
    Всё окажется в `build/release/`.
 5. Загрузите **все файлы** из `build/release/` в один релиз GitHub (Releases → Draft a new release, тег вида `v1.1.0`) или командой:
@@ -83,10 +87,7 @@ Java для **самой игры** лаунчер скачивает сам (о
     "version": "1.1.0",
     "changelog": "текст для окна «Что нового»",
     "files": {
-      "win":         { "url": "nexus-launcher-1.1.0-win.jar",         "sha256": "…", "size": 10575766 },
-      "linux":       { "url": "nexus-launcher-1.1.0-linux.jar",       "sha256": "…", "size": 9348881 },
-      "mac":         { "url": "nexus-launcher-1.1.0-mac.jar",         "sha256": "…", "size": 9471374 },
-      "mac-aarch64": { "url": "nexus-launcher-1.1.0-mac-aarch64.jar", "sha256": "…", "size": 9435698 }
+      "win": { "url": "nexus-launcher-1.1.0-win.jar", "sha256": "…", "size": 10575766 }
     }
   },
   "client": {
@@ -118,9 +119,7 @@ Microsoft не даёт сторонним лаунчерам общий клю�
 
 ## Папка данных
 
-- Windows: `%APPDATA%\.nexus-launcher`
-- macOS: `~/Library/Application Support/NexusLauncher`
-- Linux: `~/.local/share/nexus-launcher`
+`%APPDATA%\.nexus-launcher`
 
 Папку можно переопределить через `-Dnexus.launcher.dir=<путь>`.
 
@@ -136,23 +135,28 @@ java -jar nexus-launcher.jar --launch "<сборка>"  # запуск без и
 Нужен JDK 21.
 
 ```
-./gradlew run                          # запуск
-./gradlew fatJars                      # jar для всех ОС          -> build/libs
-./gradlew portableWin portableLinux    # архивы со встроенной JRE -> build/distributions
+./gradlew run                          # запуск (для разработки, на любой ОС)
+./gradlew fatJarWin                    # jar для Windows          -> build/libs
+./gradlew portableWin                  # архив со встроенной JRE  -> build/distributions
+./gradlew installerWin                 # установщик               -> build/distributions
 ./gradlew release                      # всё для релиза с автообновлением -> build/release
 ```
 
-Для portable-архивов Temurin JRE 21 скачивается с api.adoptium.net.
+Для архива и установщика Temurin JRE 21 скачивается с api.adoptium.net.
+Для `NexusLauncher.exe` нужен MinGW-w64 (`x86_64-w64-mingw32-gcc`, в Debian/Ubuntu пакет `gcc-mingw-w64-x86-64`, в Windows — MSYS2), для установщика — NSIS 3 (`makensis`, пакет `nsis`).
+Иконка и картинки установщика генерируются скриптом `packaging/windows/gen_assets.py` (нужен Pillow).
 
 ## Что не сделано или не проверено
 
-- **Автообновление** проверено на Linux целиком: 1.0.0 → 1.0.1 по локальному серверу, обновление мода в двух сборках (включённой и отключённой), самозамена jar с перезапуском, отказ при неверной контрольной сумме. На Windows и macOS замена jar не проверялась (код учитывает блокировку файла на Windows). Не проверена публикация на настоящем GitHub (в этой среде нет вашего репозитория).
+- **Автообновление** проверено: 1.0.0 → 1.0.1 по локальному серверу (на Linux), обновление мода в двух сборках (включённой и отключённой), отказ при неверной контрольной сумме; замена jar с перезапуском на Windows — в Wine (1.0.1 → 1.0.2). Проверка обновлений через настоящий GitHub Releases (qwercheka-byte/nexusCLIENT) работает.
 - Автообновление меняет только jar лаунчера. Встроенная JRE в portable-архиве не обновляется (она на Java 21 и пока не требует замены).
 - Нет цифровой подписи обновлений, кроме SHA-256 из `nexus-update.json`. Тот, у кого есть доступ к вашему репозиторию, может выпустить что угодно. Защищайте аккаунт GitHub двухфакторной аутентификацией.
 
-- Проверено только на Linux (x64). Windows и macOS не проверялись, хотя код под них есть.
-- Для macOS нет `.app` и встроенной JRE — только jar, нужна установленная Java 21. Нет подписи и нотаризации.
-- Для Windows нет `.exe`/установщика: запуск через `.bat` из portable-архива.
+- Лаунчер выпускается только для Windows x64. Начиная с 1.0.1 сборок для Linux и macOS нет: у тех, кто поставил их из 1.0.0, баннер обновления сообщит, что для их системы сборки нет.
+- Основная проверка интерфейса и запуска игр шла на Linux тем же кодом; на настоящей Windows лаунчер не запускался.
+- `NexusLauncher.exe` и установщик не подписаны цифровой подписью, поэтому при первом запуске Windows SmartScreen может предупредить («Подробнее» → «Выполнить в любом случае»). Сертификат подписи кода платный.
+- exe и установщик проверены в Wine 10 (установка, ярлыки, запись в «Приложения», запуск, путь с кириллицей, отказ при запущенном лаунчере, автообновление 1.0.1 → 1.0.2 с заменой jar и перезапуском, удаление с сохранением данных). На настоящей Windows не проверялись.
+- В панели задач у окна лаунчера стоит иконка NEXUS, но закреплять в панели задач лучше ярлык из «Пуска»: само окно принадлежит процессу `javaw.exe`.
 - Вход через Microsoft до конца не проверен: нет одобренного Mojang приложения Azure.
   Проверено, что лаунчер доходит до серверов Microsoft и правильно показывает их ошибки.
 - Нет импорта модпаков (.mrpack, CurseForge) и каталога CurseForge.

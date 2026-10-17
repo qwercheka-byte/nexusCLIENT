@@ -61,13 +61,13 @@ tasks.named('jar') {
 }
 
 /*
- * Self-contained jars, one per platform: the launcher classes + Gson + JavaFX for that OS.
- * JavaFX ships different native libraries per OS, so a single jar for all systems is not possible
- * (the macOS x64 and arm64 natives even share file names).
+ * Self-contained jar for Windows: the launcher classes + Gson + JavaFX with the Windows natives.
+ * NEXUS Launcher is distributed for Windows only (the code itself still runs on Linux/macOS for development:
+ * ./gradlew run uses the JavaFX of the machine running Gradle).
  *
- *   ./gradlew fatJarWin fatJarLinux fatJarMac fatJarMacArm   (or ./gradlew fatJars)
+ *   ./gradlew fatJarWin   (or ./gradlew fatJars)
  */
-def platforms = [Win: 'win', Linux: 'linux', Mac: 'mac', MacArm: 'mac-aarch64']
+def platforms = [Win: 'win']
 platforms.each { taskSuffix, classifier ->
     def cfg = configurations.create("fatRuntime${taskSuffix}") {
         canBeConsumed = false
@@ -99,7 +99,7 @@ platforms.each { taskSuffix, classifier ->
 
 tasks.register('fatJars') {
     group = 'distribution'
-    description = 'Builds runnable jars for every platform'
+    description = 'Builds the runnable Windows jar'
     dependsOn platforms.keySet().collect { "fatJar${it}" }
 }
 
@@ -108,12 +108,11 @@ tasks.register('fatJars') {
  * so the user does not need Java installed:
  *
  *   ./gradlew portableWin     -> build/distributions/NexusLauncher-<ver>-windows-x64.zip
- *   ./gradlew portableLinux   -> build/distributions/NexusLauncher-<ver>-linux-x64.tar.gz
  *
  * The downloaded JRE archives are cached in build/jre.
  */
 def jreArchive = { String os, String ext -> layout.buildDirectory.file("jre/temurin-21-jre-${os}-x64.${ext}").get().asFile }
-[[name: 'Win', os: 'windows', ext: 'zip'], [name: 'Linux', os: 'linux', ext: 'tar.gz']].each { p ->
+[[name: 'Win', os: 'windows', ext: 'zip']].each { p ->
     tasks.register("downloadJre${p.name}") {
         group = 'distribution'
         description = "Downloads Temurin JRE 21 for ${p.os} x64"
@@ -127,47 +126,93 @@ def jreArchive = { String os, String ext -> layout.buildDirectory.file("jre/temu
     }
 }
 
-/** Removes the top-level "jdk-21.x.y+z-jre/" folder of the JRE archive while copying. */
-def stripJreRoot = { FileCopyDetails d -> d.path = d.path.replaceFirst('/runtime/[^/]+/', '/runtime/') }
+/*
+ * Windows: a native NexusLauncher.exe (packaging/windows/launcher, built with MinGW-w64) starts the jar with the
+ * bundled runtime without a console window. Needs x86_64-w64-mingw32-gcc/-windres (Debian/Ubuntu:
+ * gcc-mingw-w64-x86-64; Windows: MSYS2 mingw-w64-x86_64-gcc); another prefix: -Pmingw_prefix=...
+ * The installer needs NSIS 3 (makensis; Debian/Ubuntu: nsis).
+ *
+ *   ./gradlew winLauncherExe   -> build/win/NexusLauncher.exe
+ *   ./gradlew installerWin     -> build/distributions/NexusLauncher-<ver>-windows-x64-setup.exe
+ */
+def mingw = (project.findProperty('mingw_prefix') ?: 'x86_64-w64-mingw32-').toString()
+def winDir = layout.buildDirectory.dir('win').get().asFile
+def verParts = (project.version.toString() =~ /\d+/).findAll().collect { it as int } + [0, 0, 0]
+
+tasks.register('winLauncherRes', Exec) {
+    group = 'distribution'
+    description = 'Compiles the resources (icon, version, manifest) of NexusLauncher.exe'
+    def src = file('packaging/windows/launcher')
+    def out = new File(winDir, 'NexusLauncher.res')
+    inputs.dir(src)
+    inputs.file('packaging/windows/nexus.ico')
+    inputs.property('version', project.version.toString())
+    outputs.file(out)
+    workingDir src
+    doFirst { winDir.mkdirs() }
+    commandLine "${mingw}windres", "-DVERSION_MAJOR=${verParts[0]}", "-DVERSION_MINOR=${verParts[1]}",
+            "-DVERSION_PATCH=${verParts[2]}", "-DVERSION_STR=\\\"${project.version}\\\"",
+            'NexusLauncher.rc', '-O', 'coff', '-o', out.absolutePath
+}
+
+tasks.register('winLauncherExe', Exec) {
+    group = 'distribution'
+    description = 'Builds the native Windows starter NexusLauncher.exe (MinGW-w64)'
+    dependsOn 'winLauncherRes'
+    def src = file('packaging/windows/launcher/NexusLauncher.c')
+    def res = new File(winDir, 'NexusLauncher.res')
+    def out = new File(winDir, 'NexusLauncher.exe')
+    inputs.files(src, res)
+    outputs.file(out)
+    commandLine "${mingw}gcc", '-O2', '-s', '-Wall', '-municode', '-mwindows', '-o', out.absolutePath, src.absolutePath, res.absolutePath
+}
+
+/** The Windows program folder: NexusLauncher.exe, nexus-launcher.jar, runtime\, LICENSE. */
+tasks.register('stageWin', Sync) {
+    group = 'distribution'
+    description = 'Assembles the Windows program folder in build/win/stage'
+    dependsOn 'fatJarWin', 'downloadJreWin', 'winLauncherExe'
+    into new File(winDir, 'stage')
+    includeEmptyDirs = false
+    // some JRE files are read-only in the archive; Windows ignores these bits, but a re-sync could not overwrite them
+    filePermissions { unix(0644) }
+    dirPermissions { unix(0755) }
+    from(new File(winDir, 'NexusLauncher.exe'))
+    from(tasks.named('fatJarWin')) { rename { 'nexus-launcher.jar' } }
+    from('LICENSE')
+    into('runtime') { from({ zipTree(jreArchive('windows', 'zip')) }) }
+    eachFile { FileCopyDetails d -> d.path = d.path.replaceFirst('^runtime/[^/]+/', 'runtime/') }
+}
 
 tasks.register('portableWin', Zip) {
     group = 'distribution'
-    description = 'Windows x64 zip with a bundled Java runtime'
-    dependsOn 'fatJarWin', 'downloadJreWin'
+    description = 'Windows x64 zip with NexusLauncher.exe and a bundled Java runtime'
+    dependsOn 'stageWin'
     archiveFileName = "NexusLauncher-${project.version}-windows-x64.zip"
     destinationDirectory = layout.buildDirectory.dir('distributions')
-    includeEmptyDirs = false
-    into('NexusLauncher') {
-        from(tasks.named('fatJarWin')) { rename { 'nexus-launcher.jar' } }
-        from('packaging/windows')
-        from('LICENSE')
-        into('runtime') { from({ zipTree(jreArchive('windows', 'zip')) }) }
-    }
-    eachFile stripJreRoot
+    into('NexusLauncher') { from(new File(winDir, 'stage')) }
 }
 
-tasks.register('portableLinux', Tar) {
+tasks.register('installerWin', Exec) {
     group = 'distribution'
-    description = 'Linux x64 tar.gz with a bundled Java runtime'
-    dependsOn 'fatJarLinux', 'downloadJreLinux'
-    archiveFileName = "NexusLauncher-${project.version}-linux-x64.tar.gz"
-    destinationDirectory = layout.buildDirectory.dir('distributions')
-    compression = Compression.GZIP
-    includeEmptyDirs = false
-    into('NexusLauncher') {
-        from(tasks.named('fatJarLinux')) { rename { 'nexus-launcher.jar' } }
-        from('packaging/linux') { filePermissions { unix(0755) } }
-        from('LICENSE')
-        into('runtime') { from({ tarTree(jreArchive('linux', 'tar.gz')) }) }
-    }
-    eachFile stripJreRoot
+    description = 'Windows x64 installer (NSIS): per-user install, Start menu / desktop shortcuts, uninstaller'
+    dependsOn 'stageWin'
+    def stage = new File(winDir, 'stage')
+    def out = layout.buildDirectory.file("distributions/NexusLauncher-${project.version}-windows-x64-setup.exe").get().asFile
+    inputs.dir(stage)
+    inputs.files(fileTree('packaging/windows') { include '*.nsi', '*.ico', '*.bmp' })
+    outputs.file(out)
+    doFirst { out.parentFile.mkdirs() }
+    commandLine 'makensis', '-V2', "-DVERSION=${project.version}", "-DSTAGE=${stage.absolutePath}",
+            "-DOUTFILE=${out.absolutePath}", file('packaging/windows/installer.nsi').absolutePath
 }
 
 /*
  * Everything a release needs for auto-updates, in build/release:
  *
- *   ./gradlew release                  launcher jars for every platform + NEXUS Client jars + nexus-update.json
- *   ./gradlew release -Pportable=true  additionally the portable Windows/Linux archives (downloads the JREs)
+ *   ./gradlew release                  Windows launcher jar + NEXUS Client jars + nexus-update.json
+ *   ./gradlew release -Pportable=true  additionally the portable Windows zip and the Windows installer
+ *                                      (downloads the JREs; needs MinGW-w64 and NSIS, see winLauncherExe)
  *
  * Upload ALL files of build/release to one GitHub release (or next to each other on your hosting).
  * NEXUS Client jars are taken from src/main/resources/bundled (nexus-client-<nexus_client_version>+mc<mc>.jar)
@@ -179,7 +224,7 @@ tasks.register('release') {
     description = 'Builds build/release with nexus-update.json for the auto-updater'
     def withPortable = project.findProperty('portable') == 'true'
     dependsOn 'fatJars'
-    if (withPortable) dependsOn 'portableWin', 'portableLinux'
+    if (withPortable) dependsOn 'portableWin', 'installerWin'
     def outDir = layout.buildDirectory.dir('release').get().asFile
     def clientDir = file(project.findProperty('clientJars') ?: 'src/main/resources/bundled')
     def notesDir = file('release-notes')

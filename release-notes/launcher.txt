@@ -1,2 +1,2 @@
-- Первая версия NEXUS Launcher
-- Автообновление лаунчера и NEXUS Client
+- Windows: настоящий NexusLauncher.exe вместо NexusLauncher.bat (без консольного окна, со своей иконкой)
+- Windows: установщик NexusLauncher-Setup — ярлыки на рабочем столе и в меню «Пуск», удаление через «Приложения»
