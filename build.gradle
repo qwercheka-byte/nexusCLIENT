@@ -208,16 +208,21 @@ tasks.register('installerWin', Exec) {
 }
 
 /*
- * Everything a release needs for auto-updates, in build/release:
+ * Everything a release needs, in build/release:
  *
- *   ./gradlew release                  Windows launcher jar + NEXUS Client jars + nexus-update.json
- *   ./gradlew release -Pportable=true  additionally the portable Windows zip and the Windows installer
- *                                      (downloads the JREs; needs MinGW-w64 and NSIS, see winLauncherExe)
+ *   ./gradlew release                  updates/ (launcher jar + NEXUS Client jars) + nexus-update.json
+ *   ./gradlew release -Pportable=true  additionally "Nexus Launcher.exe" (installer) and "Nexus Launcher.zip"
+ *                                      (downloads the JRE; needs MinGW-w64 and NSIS, see winLauncherExe)
  *
- * Upload ALL files of build/release to one GitHub release (or next to each other on your hosting).
+ * Publishing with update_github_repo set:
+ *   - build/release/updates/*  -> commit into the folder updates/ of the repository (branch main).
+ *     The jars are only for the auto-updater, so they are kept out of the release page;
+ *     nexus-update.json points to https://raw.githubusercontent.com/<repo>/main/updates/<file>.
+ *   - "Nexus Launcher.exe", "Nexus Launcher.zip", nexus-update.json -> one GitHub release, marked latest.
+ * Without update_github_repo the URLs are relative ("updates/<file>"): upload build/release as is to your hosting.
+ *
  * NEXUS Client jars are taken from src/main/resources/bundled (nexus-client-<nexus_client_version>+mc<mc>.jar)
  * or from -PclientJars=<dir>. Changelogs: release-notes/launcher.txt and release-notes/client.txt (optional).
- * GitHub replaces "+" in asset names, so the client jars are published as nexus-client-<ver>-mc<mc>.jar.
  */
 tasks.register('release') {
     group = 'distribution'
@@ -243,14 +248,17 @@ tasks.register('release') {
             f.withInputStream { is -> byte[] buf = new byte[65536]; int n; while ((n = is.read(buf)) > 0) md.update(buf, 0, n) }
             md.digest().encodeHex().toString()
         }
-        def entry = { File f -> [url: f.name, sha256: sha256(f), size: f.length()] }
+        def updDir = new File(outDir, 'updates')
+        updDir.mkdirs()
+        def urlOf = { String name -> repo ? "https://raw.githubusercontent.com/${repo}/main/updates/${name}".toString() : "updates/${name}".toString() }
+        def entry = { File f -> [url: urlOf(f.name), sha256: sha256(f), size: f.length()] }
         def notes = { String name -> def f = new File(notesDir, name); f.exists() ? f.getText('UTF-8').trim() : '' }
 
         def launcherFiles = [:]
         platforms.values().each { classifier ->
             def src = new File(libsDir, "nexus-launcher-${launcherVersion}-${classifier}.jar")
             if (!src.exists()) throw new GradleException("Missing ${src}")
-            def dst = new File(outDir, src.name)
+            def dst = new File(updDir, src.name)
             java.nio.file.Files.copy(src.toPath(), dst.toPath())
             launcherFiles[classifier] = entry(dst)
         }
@@ -261,16 +269,19 @@ tasks.register('release') {
             def m = pattern.matcher(f.name)
             if (!m.matches()) return
             if (m.group(1) != clientVersion) throw new GradleException("${f.name} does not match nexus_client_version=${clientVersion}")
-            def dst = new File(outDir, "nexus-client-${clientVersion}-mc${m.group(2)}.jar")
+            // no "+" in the name: GitHub and many web servers mangle it
+            def dst = new File(updDir, "nexus-client-${clientVersion}-mc${m.group(2)}.jar")
             java.nio.file.Files.copy(f.toPath(), dst.toPath())
             clientFiles[m.group(2)] = entry(dst)
         }
         if (clientFiles.isEmpty()) throw new GradleException("No nexus-client-${clientVersion}+mc*.jar in ${clientDir}")
 
         if (withPortable) {
-            distDir.listFiles().findAll { it.name.contains(launcherVersion) }.each {
-                java.nio.file.Files.copy(it.toPath(), new File(outDir, it.name).toPath())
-            }
+            def setup = new File(distDir, "NexusLauncher-${launcherVersion}-windows-x64-setup.exe")
+            def zip = new File(distDir, "NexusLauncher-${launcherVersion}-windows-x64.zip")
+            [setup, zip].each { if (!it.exists()) throw new GradleException("Missing ${it}") }
+            java.nio.file.Files.copy(setup.toPath(), new File(outDir, 'Nexus Launcher.exe').toPath())
+            java.nio.file.Files.copy(zip.toPath(), new File(outDir, 'Nexus Launcher.zip').toPath())
         }
 
         def manifest = [schema: 1]
@@ -286,9 +297,10 @@ tasks.register('release') {
         new File(outDir, 'nexus-update.json').setText(pretty, 'UTF-8')
 
         println "Release files in ${outDir}:"
-        outDir.listFiles().sort { it.name }.each { println "  ${it.name}" }
+        project.fileTree(outDir).files.sort { it.path }.each { println "  ${outDir.toPath().relativize(it.toPath())}" }
         if (repo) {
-            println "\nPublish (GitHub CLI):  gh release create v${launcherVersion} build/release/* --repo ${repo} --title \"NEXUS ${launcherVersion}\" --notes-file release-notes/launcher.txt"
+            println "\n1) commit build/release/updates/* into updates/ of ${repo} (branch main) and push"
+            println "2) create release v${launcherVersion} (latest) with \"Nexus Launcher.exe\", \"Nexus Launcher.zip\" and nexus-update.json"
         } else {
             println "\nSet update_github_repo (or update_url) in gradle.properties so that the launcher knows where to look."
         }

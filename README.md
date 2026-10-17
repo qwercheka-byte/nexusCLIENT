@@ -6,13 +6,13 @@
 
 Скачать: https://github.com/qwercheka-byte/nexusCLIENT/releases/latest
 
-| Файл | Для чего | Нужна ли Java |
-|---|---|---|
-| `NexusLauncher-1.0.1-windows-x64-setup.exe` | **Windows 10/11 x64, рекомендуется.** Установщик: ярлыки на рабочем столе и в «Пуске», удаление через «Приложения» | нет, JRE 21 внутри |
-| `NexusLauncher-1.0.1-windows-x64.zip` | Windows 10/11 x64 без установки. Распаковать, запустить `NexusLauncher.exe` | нет, JRE 21 внутри (`runtime/`) |
-| `nexus-launcher-1.0.1-win.jar` | Windows, `java -jar` | Java 21+ |
+| Файл | Для чего |
+|---|---|
+| `Nexus Launcher.exe` | **Рекомендуется.** Установщик для Windows 10/11 x64: ярлыки на рабочем столе и в «Пуске», удаление через «Приложения» |
+| `Nexus Launcher.zip` | То же без установки: распаковать, запустить `NexusLauncher.exe` |
 
-JavaFX содержит свои нативные библиотеки для каждой ОС, поэтому jar-файлы раздельные.
+Java ставить не нужно: JRE 21 уже внутри (папка `runtime`).
+Файлы для автообновления (jar лаунчера и NEXUS Client) лежат в папке [`updates/`](updates) репозитория, а не на странице релиза.
 
 **Windows.** `NexusLauncher.exe` — маленькая нативная программа (≈50 КБ, исходник `packaging/windows/launcher/NexusLauncher.c`).
 Она запускает `runtime\bin\javaw.exe -jar nexus-launcher.jar` без консольного окна, а если папки `runtime` нет — Java из `JAVA_HOME` или `PATH`.
@@ -66,15 +66,17 @@ Java для **самой игры** лаунчер скачивает сам (о
 3. Опишите изменения в `release-notes/launcher.txt` и `release-notes/client.txt`. Это текст окна «Что нового».
 4. Соберите релиз:
    ```
-   ./gradlew release                   # jar лаунчера + jar NEXUS Client + nexus-update.json
-   ./gradlew release -Pportable=true   # то же + установщик и portable-архив Windows (для новых игроков)
+   ./gradlew release -Pportable=true
    ```
-   Всё окажется в `build/release/`.
-5. Загрузите **все файлы** из `build/release/` в один релиз GitHub (Releases → Draft a new release, тег вида `v1.1.0`) или командой:
-   ```
-   gh release create v1.1.0 build/release/* --title "NEXUS 1.1.0" --notes-file release-notes/launcher.txt
-   ```
+   В `build/release/` окажутся `Nexus Launcher.exe`, `Nexus Launcher.zip`, `nexus-update.json` и папка `updates/` с jar-файлами.
+5. Положите файлы из `build/release/updates/` в папку `updates/` репозитория (ветка `main`) и отправьте коммит.
+   Эти jar нужны только автообновлению, поэтому на странице релиза их нет: `nexus-update.json` ссылается на
+   `https://raw.githubusercontent.com/<репозиторий>/main/updates/<файл>`. Старые jar из `updates/` не удаляйте сразу:
+   на них может ссылаться предыдущий релиз.
+6. Создайте релиз GitHub (тег вида `v1.1.0`) и загрузите в него `Nexus Launcher.exe`, `Nexus Launcher.zip` и `nexus-update.json`.
    Релиз должен быть **последним** (не Draft и не Pre-release): ссылка `releases/latest` указывает именно на него.
+
+Без `update_github_repo` (свой хостинг) ссылки в `nexus-update.json` относительные (`updates/<файл>`): выложите `build/release` целиком.
 
 Обновить только мод можно без новой версии лаунчера: поднимите `nexus_client_version`, оставьте `launcher_version` прежней и выпустите релиз. Тогда в баннере будет только «NEXUS Client X». Лаунчер обновляется, только если его версия в релизе выше установленной.
 
@@ -87,15 +89,15 @@ Java для **самой игры** лаунчер скачивает сам (о
     "version": "1.1.0",
     "changelog": "текст для окна «Что нового»",
     "files": {
-      "win": { "url": "nexus-launcher-1.1.0-win.jar", "sha256": "…", "size": 10575766 }
+      "win": { "url": "https://raw.githubusercontent.com/me/nexus-launcher/main/updates/nexus-launcher-1.1.0-win.jar", "sha256": "…", "size": 10575766 }
     }
   },
   "client": {
     "version": "1.1.0",
     "changelog": "…",
     "files": {
-      "1.21.11": { "url": "nexus-client-1.1.0-mc1.21.11.jar", "sha256": "…", "size": 366240 },
-      "1.21.4":  { "url": "nexus-client-1.1.0-mc1.21.4.jar",  "sha256": "…", "size": 326455 }
+      "1.21.11": { "url": "https://raw.githubusercontent.com/me/nexus-launcher/main/updates/nexus-client-1.1.0-mc1.21.11.jar", "sha256": "…", "size": 366240 },
+      "1.21.4":  { "url": "https://raw.githubusercontent.com/me/nexus-launcher/main/updates/nexus-client-1.1.0-mc1.21.4.jar",  "sha256": "…", "size": 326455 }
     }
   }
 }
