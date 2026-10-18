@@ -1,5 +1,6 @@
 package dev.nexus.client.mixin;
 
+import dev.nexus.client.NexusClient;
 import dev.nexus.client.render.WindowIcon;
 import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
@@ -20,15 +21,19 @@ public abstract class WindowMixin {
 
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lorg/lwjgl/glfw/GLFW;glfwDefaultWindowHints()V", shift = At.Shift.AFTER, remap = false))
     private void nexus$createHidden(CallbackInfo ci) {
-        if (WindowIcon.showAfterIcon()) GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
+        if (WindowIcon.showAfterIcon()) {
+            GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
+            NexusClient.LOGGER.info("WindowIcon[window]: created hidden until the icon is set");
+        }
     }
 
     @Inject(method = "<init>", at = @At(value = "FIELD", target = "Lnet/minecraft/client/util/Window;handle:J", opcode = Opcodes.PUTFIELD, shift = At.Shift.AFTER))
     private void nexus$iconThenShow(CallbackInfo ci) {
         if (handle == 0L) return; // creation failed; vanilla reports it
-        WindowIcon.apply(handle);
+        WindowIcon.apply(handle, "window");
         if (WindowIcon.showAfterIcon() && GLFW.glfwGetWindowAttrib(handle, GLFW.GLFW_VISIBLE) == GLFW.GLFW_FALSE) {
             GLFW.glfwShowWindow(handle);
+            NexusClient.LOGGER.info("WindowIcon[window]: window shown with the NEXUS icon");
         }
     }
 }
