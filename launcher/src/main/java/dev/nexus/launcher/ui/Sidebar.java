@@ -38,6 +38,7 @@ final class Sidebar extends VBox {
         add("accounts", I18n.t("nav.accounts"), Icons.PERSON, window::showAccounts);
         add("settings", I18n.t("nav.settings"), Icons.SETTINGS, window::showSettings);
         add("about", I18n.t("nav.about"), Icons.INFO, window::showAbout);
+        add("packs", I18n.t("nav.packs"), Icons.PUZZLE, window::showPacks);
 
         Region grow = new Region();
         VBox.setVgrow(grow, Priority.ALWAYS);

@@ -261,6 +261,10 @@ public final class MainWindow {
         setPage(new SettingsPage(this), "settings");
     }
 
+    public void showPacks() {
+        setPage(new ResourcePacksPage(this), "packs");
+    }
+
     public void showAbout() {
         setPage(new AboutPage(this), "about");
     }
