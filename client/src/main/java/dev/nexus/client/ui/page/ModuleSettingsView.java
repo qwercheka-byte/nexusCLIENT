@@ -92,7 +92,7 @@ final class ModuleSettingsView {
         Render2D.roundedRect(ctx, ix, y, 22, 22, 6, module.isEnabled() ? Theme.accentSoft() : 0x14FFFFFF);
         IconRender.drawCentered(ctx, module.getCategory().getIcon(), ix + 11, y + 11, 12,
                 module.isEnabled() ? Theme.accentBright() : Theme.TEXT_MUTED);
-        TextRender.draw(ctx, module.getName(), ix + 30, y + 2, Theme.TEXT);
+        TextRender.drawRaw(ctx, module.getName(), ix + 30, y + 2, Theme.TEXT, false);
         TextRender.drawScaled(ctx, meta, ix + 30, y + 13, 0.7f, Theme.TEXT_DIM, false);
         toggle.setBounds(x + width - Toggle.WIDTH - 2, y + 5, Toggle.WIDTH, Toggle.HEIGHT);
         toggle.render(ctx, mx, my);

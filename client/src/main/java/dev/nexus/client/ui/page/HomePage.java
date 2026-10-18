@@ -115,7 +115,7 @@ public final class HomePage extends Page {
             float h = quickHover[i].update(hov ? 1f : 0f);
             Render2D.roundedRect(ctx, qx, yy, qw, qh, Theme.RADIUS_SMALL, ColorUtil.lerp(Theme.CARD, Theme.CARD_HOVER, h));
             IconRender.draw(ctx, m.getCategory().getIcon(), qx + 7, yy + 7, 10, m.isEnabled() ? Theme.accentBright() : Theme.TEXT_DIM);
-            TextRender.draw(ctx, TextRender.ellipsize(m.getName(), (int) qw - 54), qx + 22, TextRender.centerY(yy, qh), Theme.TEXT);
+            TextRender.drawRaw(ctx, TextRender.ellipsizeRaw(m.getName(), (int) qw - 54), qx + 22, TextRender.centerY(yy, qh), Theme.TEXT, false);
             Toggle t = quickToggles.get(i);
             t.setBounds(qx + qw - Toggle.WIDTH - 6, yy + (qh - Toggle.HEIGHT) / 2f, Toggle.WIDTH, Toggle.HEIGHT);
             t.render(ctx, mx, my);

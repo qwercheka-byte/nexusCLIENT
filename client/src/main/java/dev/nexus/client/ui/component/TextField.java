@@ -126,8 +126,14 @@ public class TextField extends Component {
         UiContext.focus(this);
         allSelected = false;
         float tx = x + 6 + (icon != null ? 13 : 0) - scrollX;
-        String trimmed = TextRender.font().trimToWidth(text, (int) Math.max(0, mx - tx + 2));
-        cursor = trimmed.length();
+        // caret from click position, measured in the UI typeface
+        int budget = (int) Math.max(0, mx - tx + 2);
+        int lo = 0, hi = text.length();
+        while (lo < hi) {
+            int mid = (lo + hi + 1) >>> 1;
+            if (TextRender.widthRaw(text.substring(0, mid)) <= budget) lo = mid; else hi = mid - 1;
+        }
+        cursor = lo;
         return true;
     }
 

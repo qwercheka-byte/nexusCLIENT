@@ -1,5 +1,7 @@
 package dev.nexus.client.mixin;
 
+import dev.nexus.client.render.Render2D;
+import dev.nexus.client.render.TextRender;
 import dev.nexus.client.ui.NexusScreen;
 import dev.nexus.client.ui.vanilla.MenuBackground;
 import dev.nexus.client.ui.vanilla.NexusWidgets;
@@ -91,7 +93,7 @@ public abstract class TitleScreenMixin extends Screen {
 
         for (Element e : this.children()) {
             if (!(e instanceof ClickableWidget w) || w == this.nexus$button || !w.visible) continue;
-            if (w instanceof PressableTextWidget) continue; // copyright line keeps its vanilla place
+            if (w instanceof PressableTextWidget) continue; // vanilla bottom lines are drawn by TitleDecor.footer
             String key = nexus$key(w);
             switch (key) {
                 case "menu.singleplayer":
@@ -112,7 +114,8 @@ public abstract class TitleScreenMixin extends Screen {
                 default:
                     if (w instanceof TextIconButtonWidget || w.getWidth() <= 24) {
                         icons.add(w);
-                    } else if (w instanceof ButtonWidget) {
+                    } else if (w instanceof ButtonWidget && w.getHeight() >= 14
+                            && !w.getMessage().getString().contains("Mojang AB")) {
                         // multiplayer, demo reset, Mod Menu's "Mods" and buttons of other mods
                         column.add(w);
                     }
@@ -122,18 +125,20 @@ public abstract class TitleScreenMixin extends Screen {
         column.sort(Comparator.comparingInt(ClickableWidget::getY).thenComparingInt(ClickableWidget::getX));
         icons.sort(Comparator.comparingInt(ClickableWidget::getX));
         if (this.nexus$button != null) column.add(this.nexus$button);
+        if (options != null) column.add(options);
         if (primary != null) {
             NexusWidgets.setStyle(primary, NexusWidgets.Style.PRIMARY);
         }
 
-        int bw = 200;
+        int bw = 170;
         int bh = 20;
         int step = 24;
-        int buttonsH = column.size() * step + 4 + bh;
-        float logoH = this.height >= 300 ? 96.0F : (this.height >= 230 ? 70.0F : 44.0F);
-        boolean greet = this.height >= 250;
-        float greetH = greet ? 24.0F : 0.0F;
-        if (logoH + greetH + buttonsH > this.height - 12) {
+        int iconRowH = icons.isEmpty() ? 0 : 24;
+        int buttonsH = column.size() * step + iconRowH;
+        float logoH = this.height >= 300 ? 88.0F : 56.0F;
+        boolean greet = this.height >= 240;
+        float greetH = greet ? 16.0F : 0.0F;
+        if (logoH + greetH + buttonsH > this.height - 40) {
             greet = false;
             greetH = 0.0F;
         }
@@ -154,25 +159,38 @@ public abstract class TitleScreenMixin extends Screen {
             y += step;
         }
 
-        y += 4;
-        if (options != null) {
-            options.setDimensionsAndPosition(bw / 2 - 2, bh, x, y);
-            this.nexus$track(options, y);
+        // centred row of small square icon buttons (language, accessibility, …)
+        if (!icons.isEmpty()) {
+            y += 2;
+            int iw = icons.size() * 24 - 4;
+            int ix = this.width / 2 - iw / 2;
+            for (ClickableWidget icon : icons) {
+                icon.setPosition(ix, y);
+                this.nexus$track(icon, y);
+                ix += 24;
+            }
         }
 
+        // exit: small pill at the bottom centre, the version strings sit below it
         if (quit != null) {
-            quit.setDimensionsAndPosition(bw / 2 - 2, bh, x + bw / 2 + 2, y);
-            this.nexus$track(quit, y);
+            int qw = 104;
+            int qy = this.height - 34;
+            quit.setDimensionsAndPosition(qw, bh, this.width / 2 - qw / 2, qy);
+            this.nexus$track(quit, qy);
         }
+    }
 
-        // vanilla has two icon buttons (language left, accessibility right); extra ones continue outwards
-        for (int i = 0; i < icons.size(); i++) {
-            ClickableWidget icon = icons.get(i);
-            int n = i / 2;
-            int ix = (i & 1) == 0 ? x - 24 - n * 24 : x + bw + 4 + n * 24;
-            icon.setPosition(ix, y);
-            this.nexus$track(icon, y);
-        }
+    @Unique
+    private void nexus$drawLabel(DrawContext ctx, ClickableWidget w, Text msg) {
+        Render2D.pushAlpha(w.getAlpha());
+        int color = w.active ? 0xFFFFFFFF : 0xFF9AA0AC;
+        boolean brand = NexusWidgets.style(w) == NexusWidgets.Style.BRAND;
+        // brand buttons show the hexagon icon on the left: nudge the label right of centre
+        float cx = w.getX() + w.getWidth() / 2.0F + (brand ? 7.0F : 0.0F);
+        float cy = w.getY() + (w.getHeight() - 8.0F) / 2.0F;
+        int tw = TextRender.width(msg);
+        TextRender.draw(ctx, msg, cx - tw / 2.0F, cy, color, false);
+        Render2D.popAlpha();
     }
 
     @Unique
@@ -210,10 +228,24 @@ public abstract class TitleScreenMixin extends Screen {
             }
 
             for (Drawable d : ((ScreenAccessor)this).nexus$drawables()) {
-                d.render(ctx, mouseX, mouseY, delta);
+                // both vanilla copyright widgets are replaced by a single line in TitleDecor.footer
+                if (d instanceof PressableTextWidget
+                        || (d instanceof ClickableWidget cw0 && cw0.getMessage().getString().contains("Mojang AB"))) {
+                    continue;
+                }
+                if (d instanceof ButtonWidget w && !(d instanceof TextIconButtonWidget) && w.visible && w.getHeight() >= 14 && !w.getMessage().getString().isEmpty()) {
+                    // vanilla paints button labels with the pixel font: hide it, then draw the label with the UI typeface
+                    Text msg = w.getMessage();
+                    w.setMessage(Text.empty());
+                    d.render(ctx, mouseX, mouseY, delta);
+                    w.setMessage(msg);
+                    this.nexus$drawLabel(ctx, w, msg);
+                } else {
+                    d.render(ctx, mouseX, mouseY, delta);
+                }
             }
 
-            this.nexus$decor.footer(ctx, this.client, this.height);
+            this.nexus$decor.footer(ctx, this.client, this.width, this.height);
             if (this.realmsNotificationGui != null && this.nexus$realms != null && this.nexus$decor.intro(600L, 1L) >= 1.0F) {
                 int dx = this.nexus$realms.getRight() - (this.width / 2 + 100);
                 int dy = this.nexus$realms.getY() - (this.height / 4 + 48 + 48);

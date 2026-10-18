@@ -177,8 +177,10 @@ public abstract class Module implements SettingContainer {
     // ---------------------------------------------------------------- accessors
 
     public String getId() { return id; }
-    /** Display name in the game language. */
-    public String getName() { return Lang.tr(name); }
+    /** Display name – always English (product names stay as-is); {@link #getDisplayName()} is the translated variant for search. */
+    public String getName() { return name; }
+    /** Translated display name, used only for search so RU queries still match. */
+    public String getDisplayName() { return Lang.tr(name); }
     /** Description in the game language. */
     public String getDescription() { return Lang.tr(description); }
     public Category getCategory() { return category; }
@@ -197,7 +199,7 @@ public abstract class Module implements SettingContainer {
         if (rev != searchRevision) {
             searchRevision = rev;
             // English and translated texts, so both "zoom" and "приближение" find the module
-            searchText = (name + ' ' + description + ' ' + category.name() + ' ' + getName() + ' ' + getDescription() + ' '
+            searchText = (name + ' ' + description + ' ' + category.name() + ' ' + getDisplayName() + ' ' + getDescription() + ' '
                     + category.getDisplayName()).toLowerCase(Locale.ROOT);
         }
         return searchText.contains(lowerCaseQuery);

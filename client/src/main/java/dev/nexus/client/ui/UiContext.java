@@ -112,10 +112,10 @@ public final class UiContext {
         if (shown < 0) return;
         if (!tooltip.equals(wrappedFor)) {
             wrappedFor = tooltip;
-            wrapped = TextRender.font().wrapLines(Text.literal(Lang.tr(tooltip)), 180);
+            wrapped = TextRender.font().wrapLines(Text.literal(Lang.tr(tooltip)), (int) (180 / TextRender.UI_SCALE));
         }
         float w = 0;
-        for (OrderedText line : wrapped) w = Math.max(w, TextRender.font().getWidth(line));
+        for (OrderedText line : wrapped) w = Math.max(w, TextRender.font().getWidth(line) * TextRender.UI_SCALE);
         w += 12;
         float h = wrapped.size() * 10 + 8;
         float x = (float) tipX + 10, y = (float) tipY + 12;

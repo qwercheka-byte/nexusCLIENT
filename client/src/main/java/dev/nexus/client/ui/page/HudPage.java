@@ -138,7 +138,7 @@ public final class HudPage extends Page {
             settings.setBounds(right - 24, y + 6, 18, 18);
             reset.setBounds(right - 44, y + 6, 18, 18);
             float textW = right - 50 - (x + 22);
-            TextRender.draw(ctx, TextRender.ellipsize(module.getName(), (int) textW), x + 22, y + 6, Theme.TEXT);
+            TextRender.drawRaw(ctx, TextRender.ellipsizeRaw(module.getName(), (int) textW), x + 22, y + 6, Theme.TEXT, false);
             TextRender.drawScaled(ctx, TextRender.ellipsize(info, (int) (textW / 0.7f)), x + 22, y + 17, 0.7f, Theme.TEXT_DIM, false);
             reset.render(ctx, mx, my);
             settings.render(ctx, mx, my);

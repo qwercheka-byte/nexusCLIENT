@@ -86,11 +86,9 @@ public class ModuleCard extends Component {
         Render2D.pushAlpha(a);
         Render2D.roundedRect(ctx, x, y, width, height, Theme.RADIUS, ColorUtil.lerp(Theme.CARD, Theme.CARD_HOVER, h));
         Render2D.roundedOutline(ctx, x, y, width, height, Theme.RADIUS, 1f,
-                ColorUtil.lerp(ColorUtil.lerp(Theme.BORDER, Theme.BORDER_STRONG, h), ColorUtil.withAlpha(Theme.accent(), 0x70), e));
+                ColorUtil.lerp(ColorUtil.lerp(Theme.BORDER, Theme.BORDER_STRONG, h), ColorUtil.withAlpha(Theme.accent(), 0x5A), e));
         if (e > 0.01f) {
-            int c = ColorUtil.mulAlpha(Theme.accent(), e);
-            Render2D.gradientH(ctx, x + 8, y, (width - 16) / 2f, 1, ColorUtil.withAlpha(c, 0), c);
-            Render2D.gradientH(ctx, x + width / 2f, y, (width - 16) / 2f, 1, c, ColorUtil.withAlpha(c, 0));
+            Render2D.roundedRect(ctx, x, y + 10, 2.5f, height - 20, 1.25f, ColorUtil.mulAlpha(Theme.accent(), e));
         }
 
         // icon tile
@@ -113,7 +111,7 @@ public class ModuleCard extends Component {
         }
 
         float textX = ix + 27;
-        TextRender.draw(ctx, TextRender.ellipsize(module.getName(), (int) (right - textX)), textX, y + 10, Theme.TEXT);
+        TextRender.drawRaw(ctx, TextRender.ellipsizeRaw(module.getName(), (int) (right - textX)), textX, y + 10, ColorUtil.lerp(Theme.TEXT, Theme.accentBright(), e), false);
         TextRender.drawScaled(ctx, categoryName, textX, y + 21, 0.65f, Theme.TEXT_DIM, false);
 
         wrap(width - 18);

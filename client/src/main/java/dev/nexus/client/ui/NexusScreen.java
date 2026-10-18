@@ -105,8 +105,8 @@ public final class NexusScreen extends Screen {
         this.scale = Math.max(0.3F, auto * Nexus.settings().uiScale.getFloat());
         this.vw = this.width / this.scale;
         this.vh = this.height / this.scale;
-        this.winW = Math.min(700.0F, this.vw - 20.0F);
-        this.winH = Math.min(420.0F, this.vh - 20.0F);
+        this.winW = Math.min(720.0F, this.vw - 20.0F);
+        this.winH = Math.min(440.0F, this.vh - 20.0F);
         this.winX = (this.vw - this.winW) / 2.0F;
         this.winY = (this.vh - this.winH) / 2.0F;
         this.compact = this.winW < 500.0F;
@@ -254,7 +254,7 @@ public final class NexusScreen extends Screen {
             this.winH * 0.3F,
             40.0F,
             120.0F,
-            ColorUtil.withAlpha(Theme.accent(), 26)
+            ColorUtil.withAlpha(Theme.accent(), 14)
         );
         Render2D.shadow(
             ctx,
@@ -267,13 +267,10 @@ public final class NexusScreen extends Screen {
             ColorUtil.withAlpha(-13058568, 18)
         );
         Render2D.shadow(ctx, this.winX, this.winY + 6.0F, this.winW, this.winH, 10.0F, 22.0F, -1610612736);
-        Render2D.roundedRect(ctx, this.winX, this.winY, this.winW, this.winH, 10.0F, -200339436);
-        Render2D.roundedRect(ctx, this.winX, this.winY, this.sideW, this.winH, 10.0F, 0.0F, 0.0F, 10.0F, -133493744);
+        Render2D.roundedRect(ctx, this.winX, this.winY, this.winW, this.winH, 12.0F, -200339436);
+        Render2D.roundedRect(ctx, this.winX, this.winY, this.sideW, this.winH, 12.0F, 0.0F, 0.0F, 12.0F, -133493744);
         Render2D.rect(ctx, this.winX + this.sideW, this.winY + 8.0F, 1.0F, this.winH - 16.0F, 318767103);
-        Render2D.roundedOutline(ctx, this.winX, this.winY, this.winW, this.winH, 10.0F, 1.0F, 452984831);
-        float lw = this.winW * 0.5F;
-        Render2D.gradientH(ctx, this.winX + 10.0F, this.winY, lw - 10.0F, 1.0F, ColorUtil.withAlpha(Theme.accent(), 0), Theme.accent());
-        Render2D.gradientH(ctx, this.winX + lw, this.winY, lw - 10.0F, 1.0F, Theme.accent(), ColorUtil.withAlpha(Theme.accent(), 0));
+        Render2D.roundedOutline(ctx, this.winX, this.winY, this.winW, this.winH, 12.0F, 1.0F, 0x1FFFFFFF);
     }
 
     private float navItemY(int i) {
@@ -287,7 +284,7 @@ public final class NexusScreen extends Screen {
     private void drawSidebar(DrawContext ctx, double mx, double my) {
         float bx = this.winX + (this.compact ? (this.sideW - 22.0F) / 2.0F : 12.0F);
         float by = this.winY + 14.0F;
-        Render2D.shadow(ctx, bx + 3.0F, by + 6.0F, 16.0F, 16.0F, 6.0F, 8.0F, ColorUtil.withAlpha(Theme.accent(), 80));
+        Render2D.shadow(ctx, bx + 3.0F, by + 6.0F, 16.0F, 16.0F, 6.0F, 8.0F, ColorUtil.withAlpha(Theme.accent(), 55));
         Render2D.roundedGradient(ctx, bx, by, 22.0F, 22.0F, 6.0F, Theme.accent(), ColorUtil.lerp(Theme.accent(), -13058568, 0.6F), true);
         Render2D.roundedRect(ctx, bx + 1.0F, by + 1.0F, 20.0F, 10.0F, 5.0F, 5.0F, 0.0F, 0.0F, 587202559);
         IconRender.drawCentered(ctx, Icon.LOGO, bx + 11.0F, by + 11.0F, 14.0F, Theme.onAccent());
@@ -301,8 +298,8 @@ public final class NexusScreen extends Screen {
         float itemW = this.sideW - 16.0F;
         float itemH = 24.0F;
         float iy = this.winY + 54.0F + ind * 28.0F;
-        Render2D.roundedRect(ctx, itemX, iy, itemW, itemH, 6.0F, ColorUtil.withAlpha(Theme.accent(), 38));
-        Render2D.roundedOutline(ctx, itemX, iy, itemW, itemH, 6.0F, 1.0F, ColorUtil.withAlpha(Theme.accent(), 48));
+        Render2D.roundedRect(ctx, itemX, iy, itemW, itemH, 8.0F, ColorUtil.withAlpha(Theme.accent(), 26));
+        Render2D.roundedRect(ctx, itemX, iy + 5.0F, 2.5F, itemH - 10.0F, 1.25F, Theme.accent());
 
         for (int i = 0; i < this.pages.length; i++) {
             float y = this.navItemY(i);
@@ -368,15 +365,16 @@ public final class NexusScreen extends Screen {
         Page p = this.pages[this.current];
         float hx = this.winX + this.sideW + 16.0F;
         float hy = this.winY + 10.0F;
-        TextRender.drawScaled(ctx, p.title(), hx, hy, 1.5F, -1249805, false);
+        TextRender.drawScaled(ctx, p.title(), hx, hy, 1.3F, -1249805, false);
         TextRender.draw(ctx, TextRender.ellipsize(p.subtitle(), (int)(this.winW - this.sideW - 64.0F)), hx, hy + 18.0F, -10460550);
         float cx = this.winX + this.winW - 28.0F;
         float cy = this.winY + 12.0F;
         boolean hov = MathUtil.inside(mx, my, cx, cy, 18.0F, 18.0F);
         float h = this.closeHover.update(hov ? 1.0F : 0.0F);
         if (h > 0.01F) {
-            Render2D.roundedRect(ctx, cx, cy, 18.0F, 18.0F, 4.0F, ColorUtil.withAlpha(-495247, (int)(40.0F * h)));
+            Render2D.roundedRect(ctx, cx, cy, 18.0F, 18.0F, 8.0F, ColorUtil.lerp(83886079, 184549375, h));
         }
+        Render2D.roundedOutline(ctx, cx, cy, 18.0F, 18.0F, 8.0F, 1.0F, ColorUtil.lerp(83886079, 570425343, h));
 
         IconRender.drawCentered(ctx, Icon.CLOSE, cx + 9.0F, cy + 9.0F, 9.0F, ColorUtil.lerp(-6644563, -219739, h));
         if (hov) {

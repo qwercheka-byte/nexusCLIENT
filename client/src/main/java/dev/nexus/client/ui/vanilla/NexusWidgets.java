@@ -47,49 +47,42 @@ public final class NexusWidgets {
         Render2D.pushAlpha(alpha);
         float hov = smooth(widget, 0, !active || !hovered && !focused ? 0.0F : 1.0F);
         NexusWidgets.Style style = style(widget);
-        float r = Math.min(4.0F, h / 2.0F);
+        float r = Math.min(h / 2.0F, 12.0F);
         if (!active) {
             Render2D.roundedRect(ctx, x, y, w, h, r, -1609296615);
             Render2D.roundedOutline(ctx, x, y, w, h, r, 1.0F, 352321535);
         } else if (style == NexusWidgets.Style.PRIMARY) {
-            int a = Theme.accent();
-            int b = ColorUtil.lerp(Theme.accent(), -13058568, 0.45F);
             if (hov > 0.01F) {
-                Render2D.shadow(ctx, x + 2, y + 2, w - 4, h - 2, r, 7.0F * hov, ColorUtil.withAlpha(Theme.accent(), (int)(112.0F * hov)));
+                Render2D.shadow(ctx, x + 2, y + 2, w - 4, h - 2, r, 6.0F * hov, ColorUtil.withAlpha(Theme.accent(), (int)(96.0F * hov)));
             }
 
-            Render2D.roundedGradient(ctx, x, y, w, h, r, ColorUtil.lerp(a, -1, 0.12F * hov), ColorUtil.lerp(b, -1, 0.12F * hov), true);
-            Render2D.roundedRect(ctx, x + 1, y + 1, w - 2, h / 2.0F - 1.0F, r - 1.0F, r - 1.0F, 0.0F, 0.0F, 587202559);
-            Render2D.roundedOutline(ctx, x, y, w, h, r, 1.0F, ColorUtil.withAlpha(-1, 48 + (int)(48.0F * hov)));
+            Render2D.roundedRect(ctx, x, y, w, h, r, ColorUtil.lerp(0xB0101216, Theme.accentDim(), 0.20F));
+            Render2D.roundedRect(ctx, x, y, w, h, r, ColorUtil.withAlpha(Theme.accent(), (int)(10.0F + 14.0F * hov)));
+            Render2D.roundedOutline(ctx, x, y, w, h, r, 1.0F, ColorUtil.withAlpha(Theme.accent(), 200 + (int) (55.0F * hov)));
         } else {
-            int bg = ColorUtil.lerp(-434628321, -232446416, hov);
+            int bg = ColorUtil.lerp(0xB0101216, 0xD616181D, hov);
             if (style == NexusWidgets.Style.BRAND) {
                 bg = ColorUtil.lerp(bg, Theme.accentDim(), 0.18F + 0.14F * hov);
             }
 
             Render2D.roundedRect(ctx, x, y, w, h, r, bg);
-            Render2D.rect(ctx, x + r, y + 0.5F, w - 2.0F * r, 0.5F, 385875967);
             int border = ColorUtil.lerp(
                 style == NexusWidgets.Style.BRAND ? ColorUtil.withAlpha(Theme.accent(), 112) : 520093695, ColorUtil.withAlpha(Theme.accent(), 192), hov
             );
             Render2D.roundedOutline(ctx, x, y, w, h, r, 1.0F, border);
-            if (hov > 0.01F) {
-                float lw = (w - 2.0F * r) * hov;
-                Render2D.gradientH(ctx, x + w / 2.0F - lw / 2.0F, y + h - 1.5F, lw / 2.0F, 1.0F, ColorUtil.withAlpha(Theme.accent(), 0), Theme.accentBright());
-                Render2D.gradientH(ctx, x + w / 2.0F, y + h - 1.5F, lw / 2.0F, 1.0F, Theme.accentBright(), ColorUtil.withAlpha(Theme.accent(), 0));
-            }
         }
 
         if (style == NexusWidgets.Style.BRAND && !NO_ICON.contains(widget) && h >= 14) {
             float s = Math.min(14, h - 6);
-            float bx = x + 4;
+            float bx = x + 5;
             float by = y + (h - s) / 2.0F;
-            Render2D.roundedGradient(ctx, bx, by, s, s, 3.0F, Theme.accent(), ColorUtil.lerp(Theme.accent(), -13058568, 0.55F), true);
+            Render2D.roundedGradient(ctx, bx, by, s, s, s / 2.0F, Theme.accent(), ColorUtil.lerp(Theme.accent(), -13058568, 0.55F), true);
             IconRender.drawCentered(ctx, Icon.LOGO, bx + s / 2.0F, by + s / 2.0F, s * 0.68F, Theme.onAccent());
         }
 
         Render2D.popAlpha();
     }
+
 
     public static void sliderTrack(
         DrawContext ctx, Object widget, int x, int y, int w, int h, double value, boolean active, boolean hovered, boolean focused, float alpha

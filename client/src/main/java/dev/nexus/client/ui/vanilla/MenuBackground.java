@@ -203,6 +203,7 @@ public final class MenuBackground {
     }
 
     /** Decodes PNG/JPEG (stb_image) and shrinks it so it just covers {@code tw x th}. Runs on a worker thread. */
+    /** Decodes PNG/JPEG (stb_image) and shrinks it so it just covers {@code tw x th}. Runs on a worker thread. */
     private static NativeImage decode(byte[] data, int tw, int th) throws IOException {
         ByteBuffer buf = MemoryUtil.memAlloc(data.length);
         NativeImage src;
@@ -221,23 +222,71 @@ public final class MenuBackground {
         }
         int iw = src.getWidth();
         int ih = src.getHeight();
-        float scale = Math.max(tw / (float) iw, th / (float) ih);
-        if (scale >= 1.0F) return src;
-        int nw = Math.max(1, Math.round(iw * scale));
-        int nh = Math.max(1, Math.round(ih * scale));
-        NativeImage dst = new NativeImage(NativeImage.Format.RGBA, nw, nh, false);
-        try {
-            src.resizeSubRectTo(0, 0, iw, ih, dst);
-        } catch (RuntimeException e) {
-            dst.close();
+        // a heavily blurred photo looks creamy behind the menu and decodes/draws faster
+        boolean blur = settings().backgroundBlur.isOn();
+        float scale = Math.max(tw / (float) iw, th / (float) ih) * (blur ? 0.34F : 1.0F);
+        NativeImage dst = src;
+        if (scale < 1.0F) {
+            int nw = Math.max(1, Math.round(iw * scale));
+            int nh = Math.max(1, Math.round(ih * scale));
+            dst = new NativeImage(NativeImage.Format.RGBA, nw, nh, false);
+            try {
+                src.resizeSubRectTo(0, 0, iw, ih, dst);
+            } catch (RuntimeException e) {
+                dst.close();
+                src.close();
+                throw e;
+            }
             src.close();
-            throw e;
         }
-        src.close();
+        if (blur) {
+            boxBlur(dst, 8);
+            boxBlur(dst, 8);
+        }
         return dst;
     }
 
-    /** Uploads finished decodes. Returns false if the slide failed to load. */
+    /** Two-pass separable box blur (horizontal + vertical), operating on ARGB pixels. */
+    private static void boxBlur(NativeImage img, int r) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+        int win = 2 * r + 1;
+        int[] tmp = new int[w * h];
+        for (int y = 0; y < h; y++) {
+            long as = 0, rs = 0, gs = 0, bs = 0;
+            for (int x = -r; x <= r; x++) {
+                int c = img.getColorArgb(Math.max(0, Math.min(w - 1, x)), y);
+                as += c >>> 24; rs += (c >> 16) & 0xFF; gs += (c >> 8) & 0xFF; bs += c & 0xFF;
+            }
+            int row = y * w;
+            for (int x = 0; x < w; x++) {
+                tmp[row + x] = (int) (as / win) << 24 | (int) (rs / win) << 16 | (int) (gs / win) << 8 | (int) (bs / win);
+                int co = img.getColorArgb(Math.max(0, x - r), y);
+                int ci = img.getColorArgb(Math.min(w - 1, x + r + 1), y);
+                as += (ci >>> 24) - (co >>> 24);
+                rs += ((ci >> 16) & 0xFF) - ((co >> 16) & 0xFF);
+                gs += ((ci >> 8) & 0xFF) - ((co >> 8) & 0xFF);
+                bs += (ci & 0xFF) - (co & 0xFF);
+            }
+        }
+        for (int x = 0; x < w; x++) {
+            long as = 0, rs = 0, gs = 0, bs = 0;
+            for (int y = -r; y <= r; y++) {
+                int c = tmp[Math.max(0, Math.min(h - 1, y)) * w + x];
+                as += c >>> 24; rs += (c >> 16) & 0xFF; gs += (c >> 8) & 0xFF; bs += c & 0xFF;
+            }
+            for (int y = 0; y < h; y++) {
+                img.setColorArgb(x, y, (int) (as / win) << 24 | (int) (rs / win) << 16 | (int) (gs / win) << 8 | (int) (bs / win));
+                int co = tmp[Math.max(0, y - r) * w + x];
+                int ci = tmp[Math.min(h - 1, y + r + 1) * w + x];
+                as += (ci >>> 24) - (co >>> 24);
+                rs += ((ci >> 16) & 0xFF) - ((co >> 16) & 0xFF);
+                gs += ((ci >> 8) & 0xFF) - ((co >> 8) & 0xFF);
+                bs += (ci & 0xFF) - (co & 0xFF);
+            }
+        }
+    }
+
     private boolean pump(Slide s) {
         if (s.texture != null || s.pending == null || !s.pending.isDone()) return true;
         NativeImage img = s.pending.getNow(null);

@@ -222,11 +222,11 @@ public final class HudEditorScreen extends Screen {
             labelScale = m.getScale();
             selectionLabel = m.getName() + "  " + Math.round(labelScale * 100) + "%";
         }
-        float lw = TextRender.width(selectionLabel) + 10;
+        float lw = TextRender.widthRaw(selectionLabel) + 10;
         float lx = MathUtil.clamp(x + w / 2f - lw / 2f, 2, width - lw - 2);
         float ly = y - 16 >= 2 ? y - 16 : y + h + 4;
         Render2D.roundedRect(ctx, lx, ly, lw, 12, 6, Theme.accent());
-        TextRender.drawScaled(ctx, selectionLabel, lx + 5, ly + 2.5f, 0.85f, Theme.onAccent(), false);
+        TextRender.drawScaledRaw(ctx, selectionLabel, lx + 5, ly + 2.5f, 0.85f, Theme.onAccent(), false);
         Render2D.popAlpha();
     }
 
@@ -298,7 +298,7 @@ public final class HudEditorScreen extends Screen {
                 if (hov) Render2D.roundedRect(ctx, px + 3, ry, 144, 16, 4, 0x14FFFFFF);
                 Render2D.roundedRect(ctx, px + 8, ry + 4, 8, 8, 2, m.isEnabled() ? Theme.accent() : 0xFF2A2B36);
                 if (m.isEnabled()) IconRender.drawCentered(ctx, Icon.CHECK, px + 12, ry + 8, 6, Theme.onAccent());
-                TextRender.draw(ctx, TextRender.ellipsize(m.getName(), 120), px + 22, ry + 4, m.isEnabled() ? Theme.TEXT : Theme.TEXT_DIM);
+                TextRender.drawRaw(ctx, TextRender.ellipsizeRaw(m.getName(), 120), px + 22, ry + 4, m.isEnabled() ? Theme.TEXT : Theme.TEXT_DIM, false);
                 ry += 16;
             }
             Render2D.popAlpha();

@@ -11,12 +11,12 @@ public final class Theme {
     public static final int BACKDROP = 0xF00E0F13;
     public static final int SIDEBAR = 0xF4121318;
     public static final int SURFACE = 0xFF16171D;
-    public static final int CARD = 0xFF1B1C23;
-    public static final int CARD_HOVER = 0xFF22232C;
+    public static final int CARD = 0xFF171923;
+    public static final int CARD_HOVER = 0xFF20232F;
     public static final int CONTROL = 0xFF262732;
     public static final int CONTROL_HOVER = 0xFF2E2F3B;
-    public static final int BORDER = 0x1AFFFFFF;
-    public static final int BORDER_STRONG = 0x2EFFFFFF;
+    public static final int BORDER = 0x14FFFFFF;
+    public static final int BORDER_STRONG = 0x26FFFFFF;
     public static final int DIVIDER = 0x12FFFFFF;
     public static final int SHADOW = 0x66000000;
     // text
@@ -31,8 +31,8 @@ public final class Theme {
     public static final int HUD_PANEL = 0xFF101116;
 
     // spacing / shape
-    public static final float RADIUS = 6f;
-    public static final float RADIUS_SMALL = 4f;
+    public static final float RADIUS = 9f;
+    public static final float RADIUS_SMALL = 6f;
     public static final float PAD = 10f;
     public static final float GAP = 6f;
     public static final float ROW_HEIGHT = 24f;

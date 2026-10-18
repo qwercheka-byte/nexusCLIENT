@@ -9,7 +9,6 @@
     "GameMenuScreenMixin",
     "GameOptionsMixin",
     "GameRendererMixin",
-    "MinecraftClientIconMixin",
     "IconsMixin",
     "InGameHudMixin",
     "InactivityFpsLimiterMixin",

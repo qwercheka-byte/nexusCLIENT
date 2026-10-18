@@ -93,34 +93,28 @@ public final class TitleDecor {
             Matrix3x2fStack m = ctx.getMatrices();
             m.pushMatrix();
             float cx = w / 2.0F;
-            float big = this.logoHeight >= 80.0F ? 1.0F : (this.logoHeight >= 56.0F ? 0.72F : 0.5F);
-            float s = 3.2F * big;
+            float big = this.logoHeight >= 80.0F ? 1.0F : 0.62F;
+            float slide = (1.0F - t) * -6.0F;
+            // wordmark: big NEXUS line with an accent glow
+            float s = 4.4F * big;
             float textW = TextRender.width(LOGO) * s;
-            float tile = 34.0F * big;
-            float gap = 9.0F * big;
-            float total = tile + gap + textW;
-            float x0 = cx - total / 2.0F;
-            float y0 = this.logoTop + (1.0F - t) * -6.0F + 4.0F * big;
-            Render2D.shadow(ctx, x0 + 10.0F, y0 + tile * 0.3F, total - 20.0F, tile * 0.4F, 8.0F, 26.0F * big, ColorUtil.withAlpha(Theme.accent(), 64));
-            Render2D.shadow(ctx, x0, y0 + 2.0F, tile, tile, 8.0F * big, 6.0F * big, Integer.MIN_VALUE);
-            Render2D.roundedGradient(ctx, x0, y0, tile, tile, 8.0F * big, Theme.accent(), ColorUtil.lerp(Theme.accent(), -13058568, 0.6F), true);
-            Render2D.roundedRect(ctx, x0 + 1.0F, y0 + 1.0F, tile - 2.0F, tile / 2.0F - 1.0F, 7.0F * big, 7.0F * big, 0.0F, 0.0F, 654311423);
-            IconRender.drawCentered(ctx, Icon.LOGO, x0 + tile / 2.0F, y0 + tile / 2.0F, tile * 0.62F, Theme.onAccent());
-            float ty = y0 + (tile - 8.0F * s) / 2.0F + 0.5F * s;
-            TextRender.drawScaled(ctx, LOGO, x0 + tile + gap + s * 0.6F, ty + s * 0.6F, s, 1879048192, false);
-            TextRender.drawScaled(ctx, LOGO, x0 + tile + gap, ty, s, -1249805, false);
-            float sub = Math.max(0.6F, 0.78F * big + 0.12F);
-            String caption = spaced("CLIENT") + "   ·   MINECRAFT " + SharedConstants.getGameVersion().name();
+            float y0 = this.logoTop + slide;
+            Render2D.shadow(ctx, cx - textW * 0.4F, y0 + 8.0F * big, textW * 0.8F, s * 3.0F, 10.0F, 24.0F * big,
+                    ColorUtil.withAlpha(Theme.accent(), 110));
+            TextRender.drawScaled(ctx, LOGO, cx - textW / 2.0F + s * 0.5F, y0 + s * 0.5F, s, 1879048192, false);
+            TextRender.drawScaled(ctx, LOGO, cx - textW / 2.0F, y0, s, -1249805, false);
+            // spaced CLIENT line in the accent colour
+            String caption = spaced("CLIENT");
+            float sub = 1.05F * big;
             float cw = TextRender.width(caption) * sub;
-            float sy = y0 + tile + 9.0F * big;
-            Render2D.gradientH(ctx, cx - cw / 2.0F - 34.0F, sy + 3.5F * sub, 28.0F, 1.0F, ColorUtil.withAlpha(Theme.accent(), 0), Theme.accent());
-            Render2D.gradientH(ctx, cx + cw / 2.0F + 6.0F, sy + 3.5F * sub, 28.0F, 1.0F, Theme.accent(), ColorUtil.withAlpha(Theme.accent(), 0));
+            float sy = y0 + 9.4F * s;
+            TextRender.drawScaled(ctx, caption, cx - cw / 2.0F + 0.8F, sy + 0.8F, sub, 1879048192, false);
             TextRender.drawScaled(ctx, caption, cx - cw / 2.0F, sy, sub, Theme.accentBright(), false);
-            if (showSplash && splash != null && this.logoHeight >= 56.0F) {
+            if (showSplash && splash != null && this.logoHeight >= 80.0F) {
                 float pulse = 1.0F + 0.04F * (float)Math.sin((float)Util.getMeasuringTimeMs() / 1000.0F * 6.283F);
                 float ss = 0.82F * pulse;
                 float sw = TextRender.width(splash) * ss;
-                TextRender.drawScaled(ctx, splash, cx - sw / 2.0F, sy + 13.0F * big, ss, -137590, true);
+                TextRender.drawScaled(ctx, splash, cx - sw / 2.0F, sy + 14.0F * big, ss, -137590, true);
             }
 
             m.popMatrix();
@@ -152,59 +146,26 @@ public final class TitleDecor {
                 String name = client.getSession().getUsername();
                 Text text = Text.translatable("nexus.title.greeting." + key, name);
                 int tw = TextRender.width(text);
-                float head = 10.0F;
-                float pad = 5.0F;
-                float pw = head + 6.0F + tw + pad * 2.0F;
-                float ph = 16.0F;
-                float px = w / 2.0F - pw / 2.0F;
-                float py = this.greetingY + (1.0F - t) * 4.0F;
-                Render2D.roundedRect(ctx, px, py, pw, ph, ph / 2.0F, -1727000298);
-                Render2D.roundedOutline(ctx, px, py, pw, ph, ph / 2.0F, 1.0F, 536870911);
-                SkinTextures tex = null;
-                if (this.skin != null) {
-                    try {
-                        tex = this.skin.get();
-                    } catch (RuntimeException var19) {
-                    }
-                }
-
-                if (tex == null) {
-                    tex = DefaultSkinHelper.getSkinTextures(client.getGameProfile());
-                }
-
-                int hx = Math.round(px + pad);
-                int hy = Math.round(py + (ph - head) / 2.0F);
-                Render2D.roundedRect(ctx, hx - 1, hy - 1, head + 2.0F, head + 2.0F, 2.0F, Theme.accent());
-                PlayerSkinDrawer.draw(ctx, tex, hx, hy, (int)head);
-                TextRender.draw(ctx, text, px + pad + head + 6.0F, py + (ph - 8.0F) / 2.0F + 0.5F, -1249805, false);
+                float y = this.greetingY + (1.0F - t) * 4.0F;
+                TextRender.draw(ctx, text, w / 2.0F - tw / 2.0F, y, -3355444, false);
                 Render2D.popAlpha();
             }
         }
     }
 
-    public void footer(DrawContext ctx, MinecraftClient client, int h) {
+    public void footer(DrawContext ctx, MinecraftClient client, int w, int h) {
         float t = this.intro(450L, 500L);
         if (!(t <= 0.0F)) {
             Render2D.pushAlpha(t);
-            String vanilla = "Minecraft " + SharedConstants.getGameVersion().name();
-            if (client.isDemo()) {
-                vanilla = vanilla + " Demo";
-            } else if (!"release".equalsIgnoreCase(client.getVersionType())) {
-                vanilla = vanilla + "/" + client.getVersionType();
-            }
-
-            if (MinecraftClient.getModStatus().isModded()) {
-                vanilla = vanilla + I18n.translate("menu.modded");
-            }
-
-            float x = 6.0F;
-            float y = h - 12;
-            Render2D.circle(ctx, x + 2.5F, y - 7.5F, 2.5F, Theme.accent());
-            TextRender.draw(ctx, "NEXUS Client " + Nexus.VERSION, x + 9.0F, y - 11.0F, Theme.accentBright(), false);
-            TextRender.draw(ctx, vanilla, x, y, -6644563, false);
+            String line = "NEXUS Client " + Nexus.VERSION;
+            TextRender.draw(ctx, line, 6.0F, h - 12.0F, -9605779, false);
+            String copyright = "Copyright Mojang AB. Do not distribute!";
+            int cw = TextRender.widthRaw(copyright);
+            TextRender.drawRaw(ctx, copyright, w - 6.0F - cw, h - 12.0F, -9605779, false);
             Render2D.popAlpha();
         }
     }
+
 
     static {
         Random r = new Random(1313167445L);
