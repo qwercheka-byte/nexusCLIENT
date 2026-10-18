@@ -45,6 +45,12 @@ public final class Settings {
     public boolean photoShuffle = true;
     /** Address of nexus-update.json entered by the user; empty = the address built into the launcher. */
     public String updateUrl = "";
+    /** Cloud AI assistant: provider id ("deepseek"/"groq"/"openrouter"), the player's own API key (stored locally only),
+        consent to send build context (mods + log tail) to the provider, and the model name ("" = default). */
+    public String aiProvider = "deepseek";
+    public String aiKey = "";
+    public boolean aiConsent = false;
+    public String aiModel = "";
     /** Launcher version of the previous run, used to show "updated to X" once. */
     public String lastVersion = "";
 
@@ -119,6 +125,9 @@ public final class Settings {
         if (activeAccount == null) activeAccount = "";
         if (selectedInstance == null) selectedInstance = "";
         if (updateUrl == null) updateUrl = "";
+        if (aiProvider == null) aiProvider = d.aiProvider;
+        if (aiKey == null) aiKey = "";
+        if (aiModel == null) aiModel = "";
         if (lastVersion == null) lastVersion = "";
         if (!(windowWidth >= 900) || windowWidth > 10000) windowWidth = d.windowWidth;
         if (!(windowHeight >= 600) || windowHeight > 10000) windowHeight = d.windowHeight;

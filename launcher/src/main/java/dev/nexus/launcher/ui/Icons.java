@@ -37,6 +37,8 @@ public final class Icons {
     public static final String TUNE = "M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z";
     public static final String DUPLICATE = "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm-1 4l6 6v10c0 1.1-.9 2-2 2H7.99C6.89 23 6 22.1 6 21l.01-14c0-1.1.89-2 1.99-2h7zm-1 7h5.5L14 6.5V12z";
     /** NEXUS logo: hexagon ring. */
+    public static final String SPARKLE = "M12 2l2.2 6.9L21 11l-6.8 2.1L12 20l-2.2-6.9L3 11l6.8-2.1z";
+    public static final String SEND = "M2.7 3.6L22 12 2.7 20.4l3.2-7.2L16 12 5.9 10.8z";
     public static final String LOGO = "M12 1.5l9.1 5.25v10.5L12 22.5l-9.1-5.25V6.75zM12 6.2l-4.9 2.83v5.94L12 17.8l4.9-2.83V9.03z";
 
     private static final String BOUNDS = "M0 0h.01v.01H0zM23.99 23.99h.01v.01h-.01z";

@@ -265,6 +265,10 @@ public final class MainWindow {
         setPage(new ResourcePacksPage(this), "packs");
     }
 
+    public void showAssistant() {
+        setPage(new AssistantPage(this), "assistant");
+    }
+
     public void showAbout() {
         setPage(new AboutPage(this), "about");
     }
