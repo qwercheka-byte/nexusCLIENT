@@ -35,6 +35,8 @@ public final class Settings {
     public double windowWidth = 1180;
     public double windowHeight = 740;
     public boolean windowMaximized = false;
+    /** Themed title bar instead of the system window frame (applied on the next start). */
+    public boolean customTitleBar = true;
     /** Check for launcher / NEXUS Client updates on start-up. */
     public boolean checkUpdates = true;
     /** Animated photo background of the window (photos from <data>/backgrounds or the bundled ones). */

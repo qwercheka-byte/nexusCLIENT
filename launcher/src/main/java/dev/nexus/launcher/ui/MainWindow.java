@@ -30,6 +30,7 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -50,6 +51,8 @@ public final class MainWindow {
     private final PhotoBackground background = new PhotoBackground();
     private Node currentPage;
     private InstancesPage instancesPage;
+    private final WindowChrome chrome;
+    private static final double MIN_W = 960, MIN_H = 620;
 
     public MainWindow(Stage stage, HostServices hostServices) {
         instance = this;
@@ -61,7 +64,14 @@ public final class MainWindow {
         pageHolder.getStyleClass().add("content");
         VBox.setVgrow(pageHolder, Priority.ALWAYS);
         updateBanner = new UpdateBanner(this);
+        chrome = Settings.get().customTitleBar ? new WindowChrome(stage, root, MIN_W, MIN_H) : null;
         VBox main = new VBox(updateBanner, pageHolder, playBar);
+        if (chrome != null) {
+            // room for the window buttons above the page; the strip itself is part of the transparent title bar
+            Region titleSpace = new Region();
+            titleSpace.setMinHeight(WindowChrome.HEIGHT - 6);
+            main.getChildren().add(0, titleSpace);
+        }
         HBox.setHgrow(main, Priority.ALWAYS);
         HBox app = new HBox(sidebar, main);
 
@@ -71,6 +81,10 @@ public final class MainWindow {
         VBox toasts = Toasts.createContainer();
         StackPane.setAlignment(toasts, Pos.TOP_RIGHT);
         root.getChildren().addAll(background, app, modalLayer, toasts);
+        if (chrome != null) {
+            StackPane.setMargin(toasts, new javafx.geometry.Insets(WindowChrome.HEIGHT - 8, 0, 0, 0));
+            root.getChildren().add(chrome.bar()); // above the modal layer: the window can be moved/closed while a dialog is open
+        }
         Theme.apply(root, Settings.get().accent);
         applyBackground();
     }
@@ -97,11 +111,15 @@ public final class MainWindow {
         Settings s = Settings.get();
         Scene scene = new Scene(root, Math.max(960, s.windowWidth), Math.max(620, s.windowHeight), Color.web("#0d0e13"));
         scene.getStylesheets().add(MainWindow.class.getResource("/dev/nexus/launcher/ui/nexus.css").toExternalForm());
+        if (chrome != null) {
+            stage.initStyle(StageStyle.UNDECORATED);
+            chrome.attach(scene);
+        }
         stage.setScene(scene);
         stage.setTitle(BuildInfo.NAME);
-        stage.setMinWidth(960);
-        stage.setMinHeight(620);
-        stage.setMaximized(s.windowMaximized);
+        stage.setMinWidth(MIN_W);
+        stage.setMinHeight(MIN_H);
+        if (chrome == null) stage.setMaximized(s.windowMaximized);
         stage.getIcons().addAll(appIcons());
         stage.setOnCloseRequest(e -> {
             e.consume();
@@ -110,6 +128,7 @@ public final class MainWindow {
         background.attach(stage);
         showInstances();
         stage.show();
+        if (chrome != null && s.windowMaximized) chrome.maximize();
         afterStart();
     }
 
@@ -176,6 +195,7 @@ public final class MainWindow {
 
     private void exit() {
         saveWindowState();
+        Settings.saveNow(); // save() is asynchronous and would race with System.exit (window size was not remembered)
         Log.info("Launcher closed");
         Platform.exit();
         System.exit(0);
@@ -183,7 +203,11 @@ public final class MainWindow {
 
     public void saveWindowState() {
         Settings s = Settings.get();
-        if (stage.isShowing()) {
+        if (stage.isShowing() && chrome != null) {
+            s.windowMaximized = chrome.isMaximized();
+            s.windowWidth = chrome.normalBounds().getWidth();
+            s.windowHeight = chrome.normalBounds().getHeight();
+        } else if (stage.isShowing()) {
             s.windowMaximized = stage.isMaximized();
             if (!stage.isMaximized()) {
                 s.windowWidth = stage.getScene().getWidth();

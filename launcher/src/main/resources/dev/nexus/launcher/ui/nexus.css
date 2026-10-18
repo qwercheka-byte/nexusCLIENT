@@ -450,3 +450,15 @@
 .root.photo-bg .toast { -fx-background-color: #1c1d28; }
 .root.photo-bg .console { -fx-background-color: rgba(8, 9, 13, 0.88); }
 .root.photo-bg .h1 { -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 8, 0.2, 0, 1); }
+
+/* ---------- custom window frame (WindowChrome) ---------- */
+.root.framed { -fx-border-color: rgba(255, 255, 255, 0.10); -fx-border-width: 1; }
+.title-bar { -fx-background-color: transparent; }
+.win-btn { -fx-background-color: transparent; -fx-cursor: default; }
+.win-btn:hover { -fx-background-color: rgba(255, 255, 255, 0.08); }
+.win-btn:pressed { -fx-background-color: rgba(255, 255, 255, 0.04); }
+.win-glyph { -fx-fill: transparent; -fx-stroke: -nx-text-dim; -fx-stroke-width: 1; }
+.win-btn:hover .win-glyph { -fx-stroke: -nx-text; }
+.win-btn.close:hover { -fx-background-color: #e81123; }
+.win-btn.close:pressed { -fx-background-color: #f1707a; }
+.win-btn.close:hover .win-glyph { -fx-stroke: white; }

@@ -317,6 +317,11 @@ def main():
     logo = logo_img.resize((300, 300), Image.LANCZOS)
     icon.alpha_composite(logo, ((size - 300) // 2, (size - 300) // 2))
     icon.resize((128, 128), Image.LANCZOS).save(os.path.join(root, "icon.png"), optimize=True)
+    # game window / taskbar icon (replaces the Minecraft icon, see WindowMixin)
+    win = os.path.join(root, "textures", "window")
+    os.makedirs(win, exist_ok=True)
+    for px_size in (16, 24, 32, 48, 64, 128, 256):
+        icon.resize((px_size, px_size), Image.LANCZOS).save(os.path.join(win, "icon_%d.png" % px_size), optimize=True)
     # preview sheet (not shipped): docs/icons.png
     prev = Image.new("RGBA", atlas.size, (21, 22, 28, 255))
     prev.alpha_composite(atlas)

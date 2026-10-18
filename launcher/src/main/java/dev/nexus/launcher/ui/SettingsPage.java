@@ -188,6 +188,10 @@ final class SettingsPage extends VBox implements MainWindow.Page {
             window.applyBackground();
         });
         CheckBox shuffle = check(I18n.t("settings.photoShuffle"), s.photoShuffle, v -> s.photoShuffle = v);
+        CheckBox frame = check(I18n.t("settings.customFrame"), s.customTitleBar, v -> {
+            s.customTitleBar = v;
+            Toasts.info(I18n.t("settings.customFrameRestart"));
+        });
         Slider dimSlider = new Slider(0, 0.9, s.photoDim);
         dimSlider.setPrefWidth(260);
         Label dimValue = Fx.label(Math.round(s.photoDim * 100) + " %", "dim");
@@ -205,7 +209,8 @@ final class SettingsPage extends VBox implements MainWindow.Page {
         VBox content = new VBox(14,
                 card(I18n.t("settings.interface"),
                         field(I18n.t("settings.language"), lang),
-                        field(I18n.t("settings.accent"), accents)),
+                        field(I18n.t("settings.accent"), accents),
+                        frame, hint(I18n.t("settings.customFrameHint"))),
                 card(I18n.t("settings.background"), photos, shuffle,
                         field(I18n.t("settings.photoDim"), Fx.row(10, dimSlider, dimValue)),
                         hint(I18n.t("settings.photoHint")),

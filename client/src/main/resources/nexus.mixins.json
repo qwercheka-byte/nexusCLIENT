@@ -9,6 +9,7 @@
     "GameMenuScreenMixin",
     "GameOptionsMixin",
     "GameRendererMixin",
+    "IconsMixin",
     "InGameHudMixin",
     "InactivityFpsLimiterMixin",
     "KeyboardMixin",
@@ -23,7 +24,8 @@
     "SplashTextRendererAccessor",
     "TabButtonWidgetMixin",
     "TextFieldWidgetMixin",
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "WindowMixin"
   ],
   "injectors": {
     "defaultRequire": 1
