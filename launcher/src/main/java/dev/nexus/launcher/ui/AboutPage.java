@@ -4,14 +4,26 @@ import dev.nexus.launcher.core.BuildInfo;
 import dev.nexus.launcher.core.LauncherDirs;
 import dev.nexus.launcher.core.OS;
 import dev.nexus.launcher.i18n.I18n;
+import dev.nexus.launcher.instance.Instance;
+import dev.nexus.launcher.instance.InstanceManager;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
+
+import java.util.Comparator;
+import java.util.List;
 
 import static dev.nexus.launcher.ui.InstanceSettingsTab.card;
 import static dev.nexus.launcher.ui.InstanceSettingsTab.hint;
@@ -60,7 +72,25 @@ final class AboutPage extends VBox implements MainWindow.Page {
         Button logs = Fx.button(I18n.t("settings.openLogs"), Icons.TERMINAL, "ghost");
         logs.setOnAction(e -> Fx.openPath(LauncherDirs.logs()));
 
+        FlowPane packs = new FlowPane(16, 16);
+        packs.getChildren().addAll(
+                packTile(window, "fresh-animations", "Fresh Animations", "respacks.fresh", "fresh-animations"),
+                packTile(window, "bare-bones", "Bare Bones", "respacks.bare", "bare-bones"),
+                packTile(window, "better-leaves", "Motschen's Better Leaves", "respacks.leaves", "better-leaves"),
+                packTile(window, "dramatic-skys", "Dramatic Skys", "respacks.skys", "dramatic-skys"));
+
+        Button openPacks = Fx.button(I18n.t("respacks.open"), Icons.FOLDER, "primary");
+        openPacks.setOnAction(e -> openResourcepacks());
+        Button morePacks = Fx.button(I18n.t("respacks.more"), Icons.OPEN, "ghost");
+        morePacks.setOnAction(e -> window.openLink("https://modrinth.com/resourcepacks"));
+
         VBox content = new VBox(14, hero,
+                card(I18n.t("respacks.title"), hint(I18n.t("respacks.sub")), packs),
+                card(I18n.t("respacks.howTitle"),
+                        hint(I18n.t("respacks.how1")),
+                        hint(I18n.t("respacks.how2")),
+                        hint(I18n.t("respacks.how3")),
+                        Fx.row(8, openPacks, morePacks)),
                 card(I18n.t("about.features"), features),
                 card(I18n.t("about.environment"), env, Fx.row(8, logs)),
                 card(I18n.t("about.credits"),
@@ -72,6 +102,45 @@ final class AboutPage extends VBox implements MainWindow.Page {
         sp.setFitToWidth(true);
         VBox.setVgrow(sp, Priority.ALWAYS);
         getChildren().add(sp);
+    }
+
+    /** Clickable recommendation tile: pack screenshot on top, name and short description below. */
+    private Node packTile(MainWindow window, String img, String name, String descKey, String slug) {
+        ImageView iv = new ImageView(new Image(getClass()
+                .getResourceAsStream("/dev/nexus/launcher/img/packs/" + img + ".jpg")));
+        iv.setFitWidth(300);
+        iv.setFitHeight(169);
+        Rectangle clip = new Rectangle(300, 169);
+        clip.setArcWidth(14);
+        clip.setArcHeight(14);
+        iv.setClip(clip);
+
+        Label title = Fx.label(name, "strong");
+        Label desc = Fx.label(I18n.t(descKey), "faint", "tiny");
+        desc.setWrapText(true);
+        desc.setMaxWidth(300);
+
+        VBox box = new VBox(8, iv, title, desc);
+        box.setMaxWidth(312);
+        box.setPadding(new Insets(6));
+        box.setCursor(Cursor.HAND);
+        String base = "-fx-background-radius: 12; -fx-border-radius: 12; -fx-border-width: 1.5; -fx-border-color: transparent;";
+        box.setStyle(base);
+        box.setOnMouseEntered(e -> box.setStyle("-fx-border-color: -nx-accent; " + base));
+        box.setOnMouseExited(e -> box.setStyle(base));
+        box.setOnMouseClicked(e -> window.openLink("https://modrinth.com/resourcepack/" + slug));
+        return box;
+    }
+
+    /** Opens the resourcepacks folder of the most recently played instance. */
+    private void openResourcepacks() {
+        List<Instance> all = InstanceManager.all();
+        if (all.isEmpty()) {
+            Toasts.error(I18n.t("respacks.noInstance"));
+            return;
+        }
+        Instance best = all.stream().max(Comparator.comparingLong(i -> i.lastPlayed)).orElse(all.get(0));
+        Fx.openPath(best.gameDir().resolve("resourcepacks"));
     }
 
     @Override

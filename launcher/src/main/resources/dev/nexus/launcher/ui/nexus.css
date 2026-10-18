@@ -45,6 +45,7 @@
 .h3 { -fx-font-size: 13.5px; -fx-font-weight: bold; }
 .small { -fx-font-size: 11.5px; }
 .tiny { -fx-font-size: 10.5px; }
+.strong { -fx-font-weight: bold; }
 .section-title { -fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: -nx-accent; }
 .mono { -fx-font-family: "Monospaced"; -fx-font-size: 12px; }
 
