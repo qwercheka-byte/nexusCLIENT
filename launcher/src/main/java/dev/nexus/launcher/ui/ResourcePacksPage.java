@@ -48,6 +48,7 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
         String desc = "";
         String link = "";
         String image = "";
+        String file = "";
     }
 
     private static final Type LIST = new TypeToken<List<MyPack>>() {}.getType();
@@ -121,6 +122,10 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
         return LauncherDirs.root().resolve("pack-images");
     }
 
+    private static Path fileDir() {
+        return LauncherDirs.root().resolve("pack-files");
+    }
+
     static List<MyPack> loadMine() {
         try {
             return Json.parse(Files.readString(storeFile()), LIST);
@@ -180,11 +185,22 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
         desc.setWrapText(true);
         desc.setMaxWidth(300);
 
+        Node extra = null;
+        if (p.file != null && !p.file.isBlank()) {
+            Button install = Fx.button(I18n.t("packs.install"), Icons.DOWNLOAD, "ghost", "icon-only");
+            install.setOnAction(e -> installPack(p));
+            extra = Fx.row(2, install);
+        }
+
         Button del = Fx.button("", Icons.CLOSE, "ghost", "icon-only");
         del.setOnAction(e -> {
             List<MyPack> list = loadMine();
-            list.removeIf(x -> x.image.equals(p.image) && x.name.equals(p.name));
+            list.removeIf(x -> x.image.equals(p.image) && x.name.equals(p.name) && x.file.equals(p.file));
             saveMine(list);
+            try {
+                if (p.image != null && !p.image.isBlank()) Files.deleteIfExists(imageDir().resolve(p.image));
+                if (p.file != null && !p.file.isBlank()) Files.deleteIfExists(fileDir().resolve(p.file));
+            } catch (IOException ignored) { }
             rebuildMine();
         });
         StackPane picWrap = new StackPane(pic, del);
@@ -192,6 +208,7 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
         StackPane.setMargin(del, new Insets(4));
 
         VBox box = new VBox(8, picWrap, title, desc);
+        if (extra != null) box.getChildren().add(extra);
         box.setMaxWidth(312);
         box.setPadding(new Insets(6));
         if (p.link != null && !p.link.isBlank()) {
@@ -203,6 +220,26 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
             box.setOnMouseClicked(e -> window.openLink(p.link));
         }
         return box;
+    }
+
+    /** Copies the pack's stored zip into the resourcepacks folder of the last played instance. */
+    private void installPack(MyPack p) {
+        List<Instance> all = InstanceManager.all();
+        if (all.isEmpty()) {
+            Toasts.error(I18n.t("respacks.noInstance"));
+            return;
+        }
+        Instance best = all.stream().max(Comparator.comparingLong(i -> i.lastPlayed)).orElse(all.get(0));
+        try {
+            Path target = best.gameDir().resolve("resourcepacks");
+            Files.createDirectories(target);
+            String zipName = p.name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+            if (zipName.isEmpty()) zipName = "pack";
+            Files.copy(fileDir().resolve(p.file), target.resolve(zipName + ".zip"), StandardCopyOption.REPLACE_EXISTING);
+            Toasts.success(I18n.t("packs.installed"));
+        } catch (IOException e) {
+            Toasts.error(e.getMessage());
+        }
     }
 
     /* ------------------------------------------------ add dialog ------------------------------------------------ */
@@ -230,6 +267,20 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
             }
         });
 
+        Label zipName = Fx.label(I18n.t("packs.fileNone"), "faint", "small");
+        Button pickZip = Fx.button(I18n.t("packs.filePick"), Icons.FOLDER, "ghost");
+        Path[] chosenZip = new Path[1];
+        pickZip.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle(I18n.t("packs.filePick"));
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ресурс-паки", "*.zip"));
+            java.io.File f = fc.showOpenDialog(windowStage());
+            if (f != null) {
+                chosenZip[0] = f.toPath();
+                zipName.setText(f.getName());
+            }
+        });
+
         final Runnable[] save = new Runnable[1];
         Button create = m.button(I18n.t("packs.addCreate"), "primary", () -> save[0].run());
         create.setDisable(true);
@@ -253,6 +304,16 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
                     return;
                 }
             }
+            if (chosenZip[0] != null) {
+                try {
+                    Files.createDirectories(fileDir());
+                    p.file = UUID.randomUUID().toString().substring(0, 8) + ".zip";
+                    Files.copy(chosenZip[0], fileDir().resolve(p.file), StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException ex) {
+                    Toasts.error(ex.getMessage());
+                    return;
+                }
+            }
             List<MyPack> list = loadMine();
             list.add(p);
             saveMine(list);
@@ -265,7 +326,8 @@ final class ResourcePacksPage extends VBox implements MainWindow.Page {
                 field(I18n.t("packs.name"), name),
                 field(I18n.t("packs.desc"), desc),
                 field(I18n.t("packs.link"), link),
-                field(I18n.t("packs.img"), new javafx.scene.layout.HBox(8, pickImg, imgName)));
+                field(I18n.t("packs.img"), new javafx.scene.layout.HBox(8, pickImg, imgName)),
+                field(I18n.t("packs.file"), new javafx.scene.layout.HBox(8, pickZip, zipName)));
         m.show();
     }
 
