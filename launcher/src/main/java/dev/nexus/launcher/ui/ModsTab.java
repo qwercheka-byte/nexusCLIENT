@@ -202,20 +202,53 @@ final class ModsTab extends VBox implements InstancePage.Tab {
 
     private void confirmPerformance() {
         java.util.List<String> present = dev.nexus.launcher.modrinth.PerformancePack.present(inst);
-        StringBuilder text = new StringBuilder(I18n.t("perf.text")).append("\n");
+        java.util.Set<String> chosen = new java.util.HashSet<>();
+        java.util.Map<dev.nexus.launcher.modrinth.PerformancePack.Entry, CheckBox> boxes = new java.util.LinkedHashMap<>();
+        VBox list = new VBox(8);
         for (dev.nexus.launcher.modrinth.PerformancePack.Entry en : dev.nexus.launcher.modrinth.PerformancePack.MODS) {
-            text.append("\n•  ").append(en.title()).append(" — ").append(I18n.t("perf.mod." + en.projectId()));
-            if (present.contains(en.title())) text.append("  ✓");
+            boolean installed = present.contains(en.title());
+            CheckBox cb = new CheckBox(en.title() + (installed ? "  ✓" : ""));
+            cb.setSelected(!installed);
+            cb.setDisable(installed);
+            chosen.add(en.projectId());
+            cb.selectedProperty().addListener((o, a, b) -> {
+                if (b) chosen.add(en.projectId());
+                else chosen.remove(en.projectId());
+            });
+            Label desc = Fx.label(I18n.t("perf.mod." + en.projectId()), "faint", "tiny");
+            desc.setWrapText(true);
+            desc.setStyle("-fx-padding: 0 0 0 24;");
+            VBox row = new VBox(1, cb, desc);
+            boxes.put(en, cb);
+            list.getChildren().add(row);
         }
-        text.append("\n\n").append(I18n.t("perf.note"));
-        Modal.confirm(I18n.t("perf.title"), text.toString(), I18n.t("perf.install"), false, this::installPerformance);
+        javafx.scene.layout.VBox.setVgrow(list, javafx.scene.layout.Priority.NEVER);
+        Label hint = Fx.label(I18n.t("perf.note"), "faint", "tiny");
+        hint.setWrapText(true);
+
+        Modal m = Modal.of(I18n.t("perf.title")).width(520);
+        m.text(I18n.t("perf.text"));
+        javafx.scene.control.ScrollPane sp = new javafx.scene.control.ScrollPane(list);
+        sp.setFitToWidth(true);
+        sp.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setPrefViewportHeight(300);
+        sp.setMaxHeight(300);
+        sp.getStyleClass().add("edge-to-edge");
+        m.content(sp, hint);
+        m.closeButton(I18n.t("common.cancel"), "ghost", null);
+        m.closeButton(I18n.t("perf.install"), "primary", () -> installPerformance(chosen));
+        m.show();
     }
 
-    private void installPerformance() {
+    private void installPerformance(java.util.Set<String> chosen) {
+        if (chosen.isEmpty()) {
+            Toasts.info(I18n.t("perf.none"));
+            return;
+        }
         warnIfRunning();
         perfBtn.setDisable(true);
         perfBtn.setText(I18n.t("perf.installing"));
-        Fx.async(() -> dev.nexus.launcher.modrinth.PerformancePack.install(inst, new Progress()), r -> {
+        Fx.async(() -> dev.nexus.launcher.modrinth.PerformancePack.install(inst, new Progress(), chosen), r -> {
             perfBtn.setDisable(false);
             perfBtn.setText(I18n.t("perf.button"));
             reportPerformance(r);

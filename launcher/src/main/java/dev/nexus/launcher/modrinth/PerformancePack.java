@@ -22,10 +22,15 @@ public final class PerformancePack {
 
     public static final List<Entry> MODS = List.of(
             new Entry("AANobbMI", "Sodium"),          // rendering engine: much higher and steadier FPS
+            new Entry("PtjYWJkn", "Sodium Extra"),    // extra video options on top of Sodium
             new Entry("gvQqBUqZ", "Lithium"),         // game logic (ticks, AI, physics, chunk loading)
             new Entry("uXXizFIs", "FerriteCore"),     // memory usage
             new Entry("5ZwdcRci", "ImmediatelyFast"), // HUD, text, item and entity rendering
             new Entry("NNAgCjsB", "Entity Culling"),  // skips entities/block entities hidden behind walls
+            new Entry("51shyZVL", "More Culling"),    // skips block render passes and stray leaf faces
+            new Entry("LQ3K71Q1", "Dynamic FPS"),     // lowers the frame rate when the game is unfocused/idle
+            new Entry("fQEb0iXm", "Krypton"),         // network stack optimisation: less lag on servers
+            new Entry("VSNURh3q", "C2ME"),            // parallel chunk generation: the world loads faster
             new Entry("g96Z4WVZ", "BadOptimizations") // lightmap, sky and other small per-frame costs
     );
 
@@ -51,12 +56,21 @@ public final class PerformancePack {
 
     /** Installs every mod of the set that is missing (plus required dependencies). Network I/O: call off the FX thread. */
     public static Result install(Instance inst, Progress progress) throws IOException {
+        return install(inst, progress, null);
+    }
+
+    /**
+     * Installs missing mods of the set, limited to {@code chosenIds} when non-null (Modrinth project ids).
+     * Network I/O: call off the FX thread.
+     */
+    public static Result install(Instance inst, Progress progress, Set<String> chosenIds) throws IOException {
         List<String> installed = new ArrayList<>();
         List<String> present = new ArrayList<>();
         List<String> unavailable = new ArrayList<>();
         List<String> failed = new ArrayList<>();
         Set<String> ids = Modrinth.installedProjects(inst);
         for (Entry e : MODS) {
+            if (chosenIds != null && !chosenIds.contains(e.projectId())) continue;
             progress.checkCancelled();
             if (ids.contains(e.projectId())) {
                 present.add(e.title());
