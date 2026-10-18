@@ -46,6 +46,7 @@ final class ModsTab extends VBox implements InstancePage.Tab {
     private final Label count = Fx.label("", "faint", "small");
     private final Button nexusBtn;
     private final Button updatesBtn;
+    private final Button perfBtn;
 
     ModsTab(MainWindow window, Instance inst) {
         super(12);
@@ -56,6 +57,7 @@ final class ModsTab extends VBox implements InstancePage.Tab {
             getChildren().add(Fx.emptyState(Icons.PUZZLE, I18n.t("mods.vanilla.title"), I18n.t("mods.vanilla.text")));
             nexusBtn = null;
             updatesBtn = null;
+            perfBtn = null;
             return;
         }
 
@@ -71,7 +73,13 @@ final class ModsTab extends VBox implements InstancePage.Tab {
         folder.setOnAction(e -> Fx.openPath(inst.modsDir()));
         nexusBtn = Fx.button(I18n.t("mods.installNexus"), Icons.LOGO, "primary");
         nexusBtn.setOnAction(e -> installNexus());
-        HBox toolbar = new HBox(8, filter, count, Fx.spacer(), nexusBtn, add, updatesBtn, folder);
+        perfBtn = Fx.button(I18n.t("perf.button"), Icons.SPEED);
+        perfBtn.setOnAction(e -> confirmPerformance());
+        Fx.tip(perfBtn, I18n.t("perf.tip"));
+        boolean perfOk = dev.nexus.launcher.modrinth.PerformancePack.supports(inst.loaderType());
+        perfBtn.setVisible(perfOk);
+        perfBtn.setManaged(perfOk);
+        HBox toolbar = new HBox(8, filter, count, Fx.spacer(), nexusBtn, perfBtn, add, updatesBtn, folder);
         toolbar.setAlignment(Pos.CENTER_LEFT);
 
         list.setCellFactory(v -> new ModCell());
@@ -190,6 +198,41 @@ final class ModsTab extends VBox implements InstancePage.Tab {
             Toasts.error(Fx.errorText(err));
             reload();
         });
+    }
+
+    private void confirmPerformance() {
+        java.util.List<String> present = dev.nexus.launcher.modrinth.PerformancePack.present(inst);
+        StringBuilder text = new StringBuilder(I18n.t("perf.text")).append("\n");
+        for (dev.nexus.launcher.modrinth.PerformancePack.Entry en : dev.nexus.launcher.modrinth.PerformancePack.MODS) {
+            text.append("\n•  ").append(en.title()).append(" — ").append(I18n.t("perf.mod." + en.projectId()));
+            if (present.contains(en.title())) text.append("  ✓");
+        }
+        text.append("\n\n").append(I18n.t("perf.note"));
+        Modal.confirm(I18n.t("perf.title"), text.toString(), I18n.t("perf.install"), false, this::installPerformance);
+    }
+
+    private void installPerformance() {
+        warnIfRunning();
+        perfBtn.setDisable(true);
+        perfBtn.setText(I18n.t("perf.installing"));
+        Fx.async(() -> dev.nexus.launcher.modrinth.PerformancePack.install(inst, new Progress()), r -> {
+            perfBtn.setDisable(false);
+            perfBtn.setText(I18n.t("perf.button"));
+            reportPerformance(r);
+            reload();
+        }, err -> {
+            perfBtn.setDisable(false);
+            perfBtn.setText(I18n.t("perf.button"));
+            Toasts.error(Fx.errorText(err));
+            reload();
+        });
+    }
+
+    static void reportPerformance(dev.nexus.launcher.modrinth.PerformancePack.Result r) {
+        if (!r.installed().isEmpty()) Toasts.success(I18n.t("perf.done", String.join(", ", r.installed())));
+        else if (r.failed().isEmpty() && r.unavailable().isEmpty()) Toasts.info(I18n.t("perf.already"));
+        if (!r.unavailable().isEmpty()) Toasts.info(I18n.t("perf.unavailable", String.join(", ", r.unavailable())));
+        if (!r.failed().isEmpty()) Toasts.error(I18n.t("perf.failed", String.join(", ", r.failed())));
     }
 
     private void checkUpdates() {

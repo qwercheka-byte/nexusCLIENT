@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.page;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.config.ProfileInfo;
 import dev.nexus.client.config.ProfileManager;
@@ -218,9 +219,9 @@ public final class ProfilesPage extends Page {
                 long s = Math.max(0, (now - info.modified()) / 1000);
                 if (info.modified() <= 0) ago = "Never saved";
                 else if (s < 60) ago = "Saved just now";
-                else if (s < 3600) ago = "Saved " + s / 60 + " min ago";
-                else if (s < 86400) ago = "Saved " + s / 3600 + " h ago";
-                else ago = "Saved " + s / 86400 + " d ago";
+                else if (s < 3600) ago = Lang.fmt("Saved {0} min ago", s / 60);
+                else if (s < 86400) ago = Lang.fmt("Saved {0} h ago", s / 3600);
+                else ago = Lang.fmt("Saved {0} d ago", s / 86400);
             }
             return ago;
         }

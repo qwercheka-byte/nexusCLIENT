@@ -104,11 +104,11 @@ public class ModuleCard extends Component {
         toggle.render(ctx, mx, my);
         float right = x + width - 9 - Toggle.WIDTH - 6;
         if (module.getKeybind().isBound()) {
-            String key = TextRender.ellipsize(module.getKeybind().keyName(), 40);
-            float kw = TextRender.width(key) * 0.75f + 8;
+            String key = TextRender.ellipsizeRaw(module.getKeybind().keyName(), 40);
+            float kw = TextRender.widthRaw(key) * 0.75f + 8;
             right -= kw;
             Render2D.roundedRect(ctx, right, y + 12, kw, 13, 3, 0x14FFFFFF);
-            TextRender.drawScaled(ctx, key, right + 4, y + 15.5f, 0.75f, Theme.TEXT_MUTED, false);
+            TextRender.drawScaledRaw(ctx, key, right + 4, y + 15.5f, 0.75f, Theme.TEXT_MUTED, false);
             right -= 4;
         }
 

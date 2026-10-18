@@ -47,6 +47,7 @@ public final class MainWindow {
     private final Sidebar sidebar;
     private final PlayBar playBar;
     private final UpdateBanner updateBanner;
+    private final PhotoBackground background = new PhotoBackground();
     private Node currentPage;
     private InstancesPage instancesPage;
 
@@ -69,8 +70,19 @@ public final class MainWindow {
         Modal.install(modalLayer);
         VBox toasts = Toasts.createContainer();
         StackPane.setAlignment(toasts, Pos.TOP_RIGHT);
-        root.getChildren().addAll(app, modalLayer, toasts);
+        root.getChildren().addAll(background, app, modalLayer, toasts);
         Theme.apply(root, Settings.get().accent);
+        applyBackground();
+    }
+
+    /** Applies the photo background settings (also called from the settings page). */
+    public void applyBackground() {
+        background.reload();
+        if (background.active()) {
+            if (!root.getStyleClass().contains("photo-bg")) root.getStyleClass().add("photo-bg");
+        } else {
+            root.getStyleClass().remove("photo-bg");
+        }
     }
 
     public static MainWindow get() {
@@ -95,6 +107,7 @@ public final class MainWindow {
             e.consume();
             requestExit();
         });
+        background.attach(stage);
         showInstances();
         stage.show();
         afterStart();

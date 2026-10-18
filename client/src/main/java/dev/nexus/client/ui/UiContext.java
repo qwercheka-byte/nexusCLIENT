@@ -1,5 +1,6 @@
 package dev.nexus.client.ui;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.render.Render2D;
 import dev.nexus.client.render.TextRender;
@@ -111,7 +112,7 @@ public final class UiContext {
         if (shown < 0) return;
         if (!tooltip.equals(wrappedFor)) {
             wrappedFor = tooltip;
-            wrapped = TextRender.font().wrapLines(Text.literal(tooltip), 180);
+            wrapped = TextRender.font().wrapLines(Text.literal(Lang.tr(tooltip)), 180);
         }
         float w = 0;
         for (OrderedText line : wrapped) w = Math.max(w, TextRender.font().getWidth(line));

@@ -1,5 +1,6 @@
 package dev.nexus.client.setting;
 
+import dev.nexus.client.util.Lang;
 import com.google.gson.JsonElement;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ public abstract class Setting<T> {
     private T defaultValue;
     protected T value;
     private BooleanSupplier visibility = () -> true;
+    private java.util.function.Supplier<String> descriptionSupplier;
     private final List<Consumer<T>> listeners = new ArrayList<>(1);
     private SettingContainer owner;
 
@@ -70,8 +72,19 @@ public abstract class Setting<T> {
     }
 
     public String getId() { return id; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
+    /** Display name in the game language. */
+    public String getName() { return Lang.tr(name); }
+
+    /** Description in the game language. */
+    public String getDescription() {
+        return descriptionSupplier != null ? descriptionSupplier.get() : Lang.tr(description);
+    }
+
+    /** Replaces the fixed description with a dynamic one (e.g. one that contains the module name). */
+    public Setting<T> describedBy(java.util.function.Supplier<String> supplier) {
+        this.descriptionSupplier = supplier;
+        return this;
+    }
     public T getDefault() { return defaultValue; }
 
     public boolean isVisible() {

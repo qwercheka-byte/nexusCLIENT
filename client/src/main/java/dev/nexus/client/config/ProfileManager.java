@@ -1,5 +1,6 @@
 package dev.nexus.client.config;
 
+import dev.nexus.client.util.Lang;
 import com.google.gson.JsonObject;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.NexusClient;
@@ -111,7 +112,7 @@ public final class ProfileManager {
         ConfigIO.ReadResult res = ConfigIO.readJson(file, config.backupsDir());
         if (res.corrupt()) {
             Nexus.runOnMain(() -> Nexus.notifications().post("Profile reset",
-                    "'" + name + "' was damaged; a backup was saved", Notification.Type.WARNING));
+                    Lang.fmt("'{0}' was damaged; a backup was saved", name), Notification.Type.WARNING));
         }
         JsonObject json = res.json();
         if (json == null) return null;
@@ -163,7 +164,7 @@ public final class ProfileManager {
             if (e != null) {
                 NexusClient.LOGGER.error("Could not create profile {}", name, e);
                 profiles.removeIf(p -> p.name().equals(name));
-                Nexus.notifications().post("Profile error", "Could not create '" + name + "'", Notification.Type.ERROR);
+                Nexus.notifications().post("Profile error", Lang.fmt("Could not create '{0}'", name), Notification.Type.ERROR);
             } else {
                 Nexus.notifications().post("Profile created", name, Notification.Type.SUCCESS);
             }
@@ -192,7 +193,7 @@ public final class ProfileManager {
         }).whenComplete((r, e) -> Nexus.runOnMain(() -> {
             if (e != null) {
                 NexusClient.LOGGER.error("Could not rename profile {}", oldName, e);
-                Nexus.notifications().post("Profile error", "Could not rename '" + oldName + "'", Notification.Type.ERROR);
+                Nexus.notifications().post("Profile error", Lang.fmt("Could not rename '{0}'", oldName), Notification.Type.ERROR);
                 return;
             }
             for (int i = 0; i < profiles.size(); i++) {
@@ -229,7 +230,7 @@ public final class ProfileManager {
         }).whenComplete((r, e) -> Nexus.runOnMain(() -> {
             if (e != null) {
                 profiles.removeIf(p -> p.name().equals(target));
-                Nexus.notifications().post("Profile error", "Could not duplicate '" + source + "'", Notification.Type.ERROR);
+                Nexus.notifications().post("Profile error", Lang.fmt("Could not duplicate '{0}'", source), Notification.Type.ERROR);
             } else {
                 Nexus.notifications().post("Profile duplicated", target, Notification.Type.SUCCESS);
             }
@@ -257,9 +258,9 @@ public final class ProfileManager {
         }).whenComplete((r, e) -> Nexus.runOnMain(() -> {
             if (e != null) {
                 NexusClient.LOGGER.error("Could not delete profile {}", name, e);
-                Nexus.notifications().post("Profile error", "Could not delete '" + name + "'", Notification.Type.ERROR);
+                Nexus.notifications().post("Profile error", Lang.fmt("Could not delete '{0}'", name), Notification.Type.ERROR);
             } else {
-                Nexus.notifications().post("Profile deleted", name + " (backup kept)", Notification.Type.INFO);
+                Nexus.notifications().post("Profile deleted", Lang.fmt("{0} (backup kept)", name), Notification.Type.INFO);
             }
         }));
     }
@@ -297,7 +298,7 @@ public final class ProfileManager {
             busy = false;
             if (e != null) {
                 NexusClient.LOGGER.error("Could not load profile {}", name, e);
-                Nexus.notifications().post("Profile error", "Could not load '" + name + "'", Notification.Type.ERROR);
+                Nexus.notifications().post("Profile error", Lang.fmt("Could not load '{0}'", name), Notification.Type.ERROR);
                 return;
             }
             config.applyProfile(json);

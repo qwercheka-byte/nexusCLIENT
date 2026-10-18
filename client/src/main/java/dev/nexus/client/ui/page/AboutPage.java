@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.page;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.render.Icon;
 import dev.nexus.client.render.IconRender;
@@ -63,7 +64,6 @@ public final class AboutPage extends Page {
         }
     }
 
-    private static final String VERSION_LINE = "Version " + Nexus.VERSION + " · Fabric · Minecraft " + Nexus.MC_VERSION;
 
     @Override public String title() { return "About"; }
     @Override public String subtitle() { return "NEXUS Client " + Nexus.VERSION; }
@@ -91,7 +91,7 @@ public final class AboutPage extends Page {
             Render2D.roundedGradient(ctx, x, y, 44, 44, 11, Theme.accent(), ColorUtil.lerp(Theme.accent(), Theme.CYAN, 0.6f), true);
             IconRender.drawCentered(ctx, Icon.LOGO, x + 22, y + 22, 26, Theme.onAccent());
             TextRender.drawScaled(ctx, "NEXUS Client", x + 56, y + 6, 1.5f, Theme.TEXT, false);
-            TextRender.draw(ctx, VERSION_LINE, x + 56, y + 22, Theme.TEXT_MUTED);
+            TextRender.drawRaw(ctx, Lang.fmt("Version {0}", Nexus.VERSION) + " · Fabric · Minecraft " + Nexus.MC_VERSION, x + 56, y + 22, Theme.TEXT_MUTED, false);
             TextRender.draw(ctx, TextRender.ellipsize("A clean, extensible utility client. MIT licensed.", (int) width - 60), x + 56, y + 33, Theme.TEXT_DIM);
 
             float ty = y + 64;
@@ -111,11 +111,11 @@ public final class AboutPage extends Page {
             TextRender.drawScaled(ctx, "SHORTCUTS", x + 2, ty, 0.75f, Theme.accentBright(), false);
             ty += 14;
             for (String[] s : shortcuts) {
-                String key = s[1].equals("menu") ? Nexus.settings().menuKey.keyName() : s[1];
+                String key = s[1].equals("menu") ? Nexus.settings().menuKey.keyName() : Lang.tr(s[1]);
                 TextRender.draw(ctx, s[0], x + 2, ty, Theme.TEXT_MUTED);
-                float kw = TextRender.width(key) + 8;
+                float kw = TextRender.widthRaw(key) + 8;
                 Render2D.roundedRect(ctx, x + half - kw, ty - 2, kw, 12, 3, 0x14FFFFFF);
-                TextRender.draw(ctx, key, x + half - kw + 4, ty, Theme.TEXT);
+                TextRender.drawRaw(ctx, key, x + half - kw + 4, ty, Theme.TEXT, false);
                 ty += 13;
             }
         }

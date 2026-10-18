@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.page;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.hud.HudModule;
 import dev.nexus.client.render.Icon;
@@ -43,7 +44,7 @@ public final class HudPage extends Page {
         for (HudModule m : Nexus.modules().hudModules()) if (m.isEnabled()) enabled++;
         if (enabled != countFor) {
             countFor = enabled;
-            countText = enabled + " of " + Nexus.modules().hudModules().size() + " elements visible";
+            countText = Lang.fmt("{0} of {1} elements visible", enabled, Nexus.modules().hudModules().size());
         }
         return countText;
     }
@@ -130,7 +131,7 @@ public final class HudPage extends Page {
             if (module.getScale() != shownScale || module.getOpacity() != shownOpacity) {
                 shownScale = module.getScale();
                 shownOpacity = module.getOpacity();
-                info = String.format(java.util.Locale.ROOT, "Scale %.2fx · Opacity %d%%", shownScale, Math.round(shownOpacity * 100));
+                info = String.format(java.util.Locale.ROOT, Lang.tr("Scale %.2fx · Opacity %d%%"), shownScale, Math.round(shownOpacity * 100));
             }
             float right = x + width - 8 - Toggle.WIDTH;
             toggle.setBounds(right, y + (height - Toggle.HEIGHT) / 2f, Toggle.WIDTH, Toggle.HEIGHT);

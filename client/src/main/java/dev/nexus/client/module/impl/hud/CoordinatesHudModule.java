@@ -1,5 +1,6 @@
 package dev.nexus.client.module.impl.hud;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.hud.HudModule;
 import dev.nexus.client.hud.HudStyle;
 import dev.nexus.client.render.TextRender;
@@ -43,6 +44,7 @@ public final class CoordinatesHudModule extends HudModule {
     private RegistryKey<World> lastDim;
     private long lastBlock = Long.MIN_VALUE;
     private String biomeName = "";
+    private int lastRevision = -1;
     private int settingsStamp = -1;
     private int changeCounter;
 
@@ -90,11 +92,14 @@ public final class CoordinatesHudModule extends HudModule {
         RegistryKey<World> dim = mc.world.getRegistryKey();
         BlockPos block = p.getBlockPos();
         long blockKey = block.asLong();
-        if (biome.isOn() && blockKey != lastBlock) {
+        int rev = Lang.revision();
+        boolean langChanged = rev != lastRevision;
+        lastRevision = rev;
+        if (biome.isOn() && (blockKey != lastBlock || langChanged)) {
             Optional<RegistryKey<Biome>> key = mc.world.getBiome(block).getKey();
-            biomeName = key.map(k -> pretty(k.getValue().getPath())).orElse("Unknown");
+            biomeName = key.map(k -> biomeName(k.getValue())).orElse(Lang.tr("Unknown"));
         }
-        boolean changed = x != lastX || y != lastY || z != lastZ || facing != lastFacing || dim != lastDim
+        boolean changed = x != lastX || y != lastY || z != lastZ || facing != lastFacing || dim != lastDim || langChanged
                 || settingsStamp != changeCounter || (biome.isOn() && blockKey != lastBlock);
         lastBlock = blockKey;
         if (!changed) return;
@@ -106,7 +111,7 @@ public final class CoordinatesHudModule extends HudModule {
         settingsStamp = changeCounter;
 
         String fx = num(x, dec), fy = num(y, dec), fz = num(z, dec);
-        String dir = pretty(facing.asString()) + " (" + axis(facing) + ")";
+        String dir = Lang.tr(pretty(facing.asString())) + " (" + axis(facing) + ")";
         rows = 0;
         switch (format.get()) {
             case "Stacked" -> {
@@ -146,6 +151,13 @@ public final class CoordinatesHudModule extends HudModule {
             case EAST -> "+X";
             default -> "";
         };
+    }
+
+    /** Biome name from the game's translations (e.g. "Равнины"), or a prettified id for biomes without one. */
+    private static String biomeName(net.minecraft.util.Identifier id) {
+        String key = id.toTranslationKey("biome");
+        String t = net.minecraft.client.resource.language.I18n.translate(key);
+        return t == null || t.equals(key) ? pretty(id.getPath()) : t;
     }
 
     static String pretty(String id) {

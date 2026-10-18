@@ -1,5 +1,6 @@
 package dev.nexus.client.module;
 
+import dev.nexus.client.util.Lang;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.nexus.client.Nexus;
@@ -37,7 +38,8 @@ public abstract class Module implements SettingContainer {
     private final List<Setting<?>> settingsView = Collections.unmodifiableList(settings);
     private final List<Subscription<?>> subscriptions = new ArrayList<>();
     private final KeybindSetting keybind;
-    private final String searchText;
+    private String searchText;
+    private int searchRevision = -1;
     private boolean enabled;
 
     protected Module(String id, String name, String description, Category category, boolean enabledByDefault) {
@@ -47,7 +49,7 @@ public abstract class Module implements SettingContainer {
         this.category = category;
         this.enabledByDefault = enabledByDefault;
         this.keybind = attach(new KeybindSetting("keybind", "Keybind", "Toggles " + name, KeybindSetting.NONE));
-        this.searchText = (name + ' ' + description + ' ' + category.getDisplayName()).toLowerCase(Locale.ROOT);
+        this.keybind.describedBy(() -> Lang.fmt("Toggles {0}", getName()));
     }
 
     protected Module(String id, String name, String description, Category category) {
@@ -175,8 +177,10 @@ public abstract class Module implements SettingContainer {
     // ---------------------------------------------------------------- accessors
 
     public String getId() { return id; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
+    /** Display name in the game language. */
+    public String getName() { return Lang.tr(name); }
+    /** Description in the game language. */
+    public String getDescription() { return Lang.tr(description); }
     public Category getCategory() { return category; }
     public boolean isEnabled() { return enabled; }
     public boolean isEnabledByDefault() { return enabledByDefault; }
@@ -188,7 +192,15 @@ public abstract class Module implements SettingContainer {
     }
 
     public boolean matches(String lowerCaseQuery) {
-        return lowerCaseQuery.isEmpty() || searchText.contains(lowerCaseQuery);
+        if (lowerCaseQuery.isEmpty()) return true;
+        int rev = Lang.revision();
+        if (rev != searchRevision) {
+            searchRevision = rev;
+            // English and translated texts, so both "zoom" and "приближение" find the module
+            searchText = (name + ' ' + description + ' ' + category.name() + ' ' + getName() + ' ' + getDescription() + ' '
+                    + category.getDisplayName()).toLowerCase(Locale.ROOT);
+        }
+        return searchText.contains(lowerCaseQuery);
     }
 
     /** Whether the module appears in the on-screen module list HUD. */

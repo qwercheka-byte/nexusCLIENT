@@ -435,3 +435,18 @@
 .update-icon { -fx-background-color: white; }
 .update-title { -fx-font-weight: bold; -fx-font-size: 13.5px; -fx-text-fill: -nx-text; }
 .update-banner .progress-bar { -fx-pref-width: 420; -fx-max-width: 420; }
+
+/* ---------- photo background (root gets .photo-bg when photos are shown) ---------- */
+.root.photo-bg {
+    -nx-bg: transparent;
+    -nx-sidebar: rgba(12, 13, 19, 0.70);
+    -nx-surface: rgba(22, 23, 32, 0.74);
+    -nx-surface-2: rgba(30, 31, 43, 0.80);
+    -nx-surface-3: rgba(40, 41, 56, 0.85);
+    -nx-border: rgba(255, 255, 255, 0.08);
+    -nx-border-strong: rgba(255, 255, 255, 0.16);
+}
+.root.photo-bg .dialog { -fx-background-color: #161720; }
+.root.photo-bg .toast { -fx-background-color: #1c1d28; }
+.root.photo-bg .console { -fx-background-color: rgba(8, 9, 13, 0.88); }
+.root.photo-bg .h1 { -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.55), 8, 0.2, 0, 1); }

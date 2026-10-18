@@ -1,5 +1,6 @@
 package dev.nexus.client.util;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.setting.KeybindSetting;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -8,15 +9,16 @@ import org.lwjgl.glfw.GLFW;
 public final class KeyNames {
     private KeyNames() {}
 
+    /** Display name of a key, already in the game language – draw it without translating again. */
     public static String name(int code) {
-        if (code == KeybindSetting.NONE) return "None";
+        if (code == KeybindSetting.NONE) return Lang.tr("None");
         if (code >= KeybindSetting.MOUSE_BASE) {
             int button = code - KeybindSetting.MOUSE_BASE;
             return switch (button) {
-                case GLFW.GLFW_MOUSE_BUTTON_LEFT -> "LMB";
-                case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> "RMB";
-                case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> "MMB";
-                default -> "Mouse " + (button + 1);
+                case GLFW.GLFW_MOUSE_BUTTON_LEFT -> Lang.tr("LMB");
+                case GLFW.GLFW_MOUSE_BUTTON_RIGHT -> Lang.tr("RMB");
+                case GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> Lang.tr("MMB");
+                default -> Lang.fmt("Mouse {0}", button + 1);
             };
         }
         return switch (code) {
@@ -32,7 +34,7 @@ public final class KeyNames {
             case GLFW.GLFW_KEY_END -> "End";
             case GLFW.GLFW_KEY_PAGE_UP -> "PgUp";
             case GLFW.GLFW_KEY_PAGE_DOWN -> "PgDn";
-            case GLFW.GLFW_KEY_SPACE -> "Space";
+            case GLFW.GLFW_KEY_SPACE -> Lang.tr("Space");
             case GLFW.GLFW_KEY_TAB -> "Tab";
             case GLFW.GLFW_KEY_CAPS_LOCK -> "Caps";
             default -> {

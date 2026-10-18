@@ -1,5 +1,6 @@
 package dev.nexus.client.module;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.render.Icon;
 
 public enum Category {
@@ -18,7 +19,7 @@ public enum Category {
     }
 
     public String getDisplayName() {
-        return displayName;
+        return Lang.tr(displayName);
     }
 
     public Icon getIcon() {

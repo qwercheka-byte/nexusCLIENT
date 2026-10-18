@@ -1,5 +1,6 @@
 package dev.nexus.client.module.impl.hud;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.event.events.AttackEntityEvent;
 import dev.nexus.client.event.events.TickEvent;
 import dev.nexus.client.event.events.WorldLeaveEvent;
@@ -51,6 +52,7 @@ public final class TargetHudModule extends HudModule {
     private Entity cachedNameFor;
     private String cachedName = "";
     private int cachedHpTenths = -1, cachedArmor = -1, cachedDist = -1;
+    private int cachedLang = -1;
     private String hpText = "", infoText = "";
 
     public TargetHudModule() {
@@ -161,14 +163,15 @@ public final class TargetHudModule extends HudModule {
             cachedHpTenths = hpTenths;
             hpText = String.format(Locale.ROOT, "%.1f\u2764", hpTenths / 20f);
         }
-        if (armorPts != cachedArmor || dist != cachedDist) {
+        if (armorPts != cachedArmor || dist != cachedDist || cachedLang != Lang.revision()) {
+            cachedLang = Lang.revision();
             cachedArmor = armorPts;
             cachedDist = dist;
             StringBuilder sb = new StringBuilder();
-            if (armor.isOn() && armorPts > 0) sb.append(armorPts).append(" armor");
+            if (armor.isOn() && armorPts > 0) sb.append(Lang.fmt("{0} armor", armorPts));
             if (distance.isOn() && t != mc.player) {
                 if (!sb.isEmpty()) sb.append("  ");
-                sb.append(String.format(Locale.ROOT, "%.1fm", dist / 10f));
+                sb.append(String.format(Locale.ROOT, Lang.tr("%.1fm"), dist / 10f));
             }
             infoText = sb.toString();
         }

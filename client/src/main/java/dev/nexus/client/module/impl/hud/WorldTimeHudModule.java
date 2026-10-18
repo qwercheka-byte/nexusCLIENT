@@ -1,5 +1,6 @@
 package dev.nexus.client.module.impl.hud;
 
+import dev.nexus.client.util.Lang;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import dev.nexus.client.hud.HudModule;
 import dev.nexus.client.hud.HudStyle;
@@ -32,6 +33,7 @@ public final class WorldTimeHudModule extends HudModule {
     private String mainText = "", subText = "", realText = "";
     private boolean night;
     private int cachedWeather = -1;
+    private int langStamp = -1;
 
     public WorldTimeHudModule() {
         super("world_time_hud", "World Time HUD", "Shows the in-game time and day, plus optional weather and moon phase.",
@@ -54,8 +56,10 @@ public final class WorldTimeHudModule extends HudModule {
         long minuteKey = (time / 24000L) * 1440L + minuteOfDay;
         boolean raining = world.isRaining(), thunder = world.isThundering();
         int weatherKey = thunder ? 2 : raining ? 1 : 0;
-        if (minuteKey != cachedMinuteKey || stamp != changes || weatherKey != cachedWeather) {
+        if (minuteKey != cachedMinuteKey || stamp != changes || weatherKey != cachedWeather || langStamp != Lang.revision()) {
             cachedWeather = weatherKey;
+            langStamp = Lang.revision();
+            cachedRealMinute = Long.MIN_VALUE;
             cachedMinuteKey = minuteKey;
             stamp = changes;
             int h = minuteOfDay / 60, m = minuteOfDay % 60;
@@ -66,12 +70,12 @@ public final class WorldTimeHudModule extends HudModule {
             } else {
                 clockText = (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
             }
-            mainText = day.isOn() ? "Day " + (time / 24000L + 1) + "  " + clockText : clockText;
+            mainText = day.isOn() ? Lang.fmt("Day {0}", time / 24000L + 1) + "  " + clockText : clockText;
             StringBuilder sb = new StringBuilder();
-            if (weather.isOn()) sb.append(thunder ? "Thunder" : raining ? "Rain" : "Clear");
+            if (weather.isOn()) sb.append(Lang.tr(thunder ? "Thunder" : raining ? "Rain" : "Clear"));
             if (moon.isOn()) {
                 if (!sb.isEmpty()) sb.append(" · ");
-                sb.append(MOON[Math.floorMod(world.getEnvironmentAttributes().getAttributeValue(EnvironmentAttributes.MOON_PHASE_VISUAL).getIndex(), MOON.length)]);
+                sb.append(Lang.tr(MOON[Math.floorMod(world.getEnvironmentAttributes().getAttributeValue(EnvironmentAttributes.MOON_PHASE_VISUAL).getIndex(), MOON.length)]));
             }
             subText = sb.toString();
             night = dayTime >= 12542 && dayTime < 23460;
@@ -81,7 +85,7 @@ public final class WorldTimeHudModule extends HudModule {
             if (realMinute != cachedRealMinute) {
                 cachedRealMinute = realMinute;
                 LocalTime now = LocalTime.now();
-                realText = "Local " + (now.getHour() < 10 ? "0" : "") + now.getHour() + ":" + (now.getMinute() < 10 ? "0" : "") + now.getMinute();
+                realText = Lang.tr("Local") + " " + (now.getHour() < 10 ? "0" : "") + now.getHour() + ":" + (now.getMinute() < 10 ? "0" : "") + now.getMinute();
             }
         }
 

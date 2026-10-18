@@ -1,5 +1,6 @@
 package dev.nexus.client.setting;
 
+import dev.nexus.client.util.Lang;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import dev.nexus.client.util.MathUtil;
@@ -68,11 +69,13 @@ public final class NumberSetting extends Setting<Double> {
 
     private double formattedFor = Double.NaN;
     private String formatted = "";
+    private int formattedLang = -1;
 
     /** Display text, cached until the value changes (safe to call every frame). */
     public String format() {
-        if (value == formattedFor) return formatted;
+        if (value == formattedFor && formattedLang == Lang.revision()) return formatted;
         formattedFor = value;
+        formattedLang = Lang.revision();
         formatted = formatUncached();
         return formatted;
     }
@@ -80,7 +83,7 @@ public final class NumberSetting extends Setting<Double> {
     private String formatUncached() {
         double shown = value * displayMultiplier;
         int shownDecimals = displayMultiplier == 1 ? decimals : Math.max(0, decimals - (int) Math.round(Math.log10(displayMultiplier)));
-        return String.format(Locale.ROOT, "%." + shownDecimals + "f", shown) + suffix;
+        return String.format(Locale.ROOT, "%." + shownDecimals + "f", shown) + Lang.tr(suffix);
     }
 
     @Override

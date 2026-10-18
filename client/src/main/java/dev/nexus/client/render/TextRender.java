@@ -1,6 +1,7 @@
 package dev.nexus.client.render;
 
 import dev.nexus.client.util.ColorUtil;
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.util.Mc;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -20,7 +21,13 @@ public final class TextRender {
         return Mc.get().textRenderer;
     }
 
+    /** Width of a UI string (translated, see {@link Lang}). */
     public static int width(String s) {
+        return font().getWidth(Lang.tr(s));
+    }
+
+    /** Width of a string exactly as given (user input, names) – no translation. */
+    public static int widthRaw(String s) {
         return font().getWidth(s);
     }
 
@@ -58,7 +65,13 @@ public final class TextRender {
         draw(ctx, s, x, y, color, false);
     }
 
+    /** Draws a UI string, translated to the game language (see {@link Lang}). */
     public static void draw(DrawContext ctx, String s, float x, float y, int color, boolean shadow) {
+        drawRaw(ctx, Lang.tr(s), x, y, color, shadow);
+    }
+
+    /** Draws a string exactly as given (user input, names) – no translation. */
+    public static void drawRaw(DrawContext ctx, String s, float x, float y, int color, boolean shadow) {
         int c = prepare(color);
         if (c == 0 || s.isEmpty()) return;
         submit(ctx, Language.getInstance().reorder(StringVisitable.plain(s)), x, y, c, shadow);
@@ -78,6 +91,21 @@ public final class TextRender {
 
     public static void drawCentered(DrawContext ctx, String s, float centerX, float y, int color) {
         draw(ctx, s, centerX - width(s) / 2f, y, color, false);
+    }
+
+    /** Centered, without translation. */
+    public static void drawCenteredRaw(DrawContext ctx, String s, float centerX, float y, int color) {
+        drawRaw(ctx, s, centerX - widthRaw(s) / 2f, y, color, false);
+    }
+
+    /** Scaled, without translation. */
+    public static void drawScaledRaw(DrawContext ctx, String s, float x, float y, float scale, int color, boolean shadow) {
+        Matrix3x2fStack m = ctx.getMatrices();
+        m.pushMatrix();
+        m.translate(x, y);
+        m.scale(scale, scale);
+        drawRaw(ctx, s, 0, 0, color, shadow);
+        m.popMatrix();
     }
 
     public static void drawRight(DrawContext ctx, String s, float rightX, float y, int color) {
@@ -102,9 +130,14 @@ public final class TextRender {
         m.popMatrix();
     }
 
-    /** Trims the string to {@code maxWidth} adding an ellipsis. Allocates – cache the result. */
+    /** Translates the UI string and trims it to {@code maxWidth} adding an ellipsis. Allocates – cache the result. */
     public static String ellipsize(String s, int maxWidth) {
-        if (width(s) <= maxWidth) return s;
+        return ellipsizeRaw(Lang.tr(s), maxWidth);
+    }
+
+    /** Trims the string (not translated) to {@code maxWidth} adding an ellipsis. */
+    public static String ellipsizeRaw(String s, int maxWidth) {
+        if (widthRaw(s) <= maxWidth) return s;
         int ell = width("…");
         if (maxWidth <= ell) return "";
         return font().trimToWidth(s, maxWidth - ell) + "…";

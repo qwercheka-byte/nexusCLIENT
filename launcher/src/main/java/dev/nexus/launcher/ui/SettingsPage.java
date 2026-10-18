@@ -11,6 +11,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -181,10 +182,34 @@ final class SettingsPage extends VBox implements MainWindow.Page {
                     updateCacheSize();
                 }, err -> Toasts.error(Fx.errorText(err)))));
 
+        // --- background ---
+        CheckBox photos = check(I18n.t("settings.photoBg"), s.photoBackground, v -> {
+            s.photoBackground = v;
+            window.applyBackground();
+        });
+        CheckBox shuffle = check(I18n.t("settings.photoShuffle"), s.photoShuffle, v -> s.photoShuffle = v);
+        Slider dimSlider = new Slider(0, 0.9, s.photoDim);
+        dimSlider.setPrefWidth(260);
+        Label dimValue = Fx.label(Math.round(s.photoDim * 100) + " %", "dim");
+        dimSlider.valueProperty().addListener((o, a, b) -> {
+            s.photoDim = Math.round(b.doubleValue() * 20) / 20.0;
+            dimValue.setText(Math.round(s.photoDim * 100) + " %");
+            Settings.save();
+            window.applyBackground();
+        });
+        Button photoFolder = Fx.button(I18n.t("settings.photoFolder"), Icons.FOLDER);
+        photoFolder.setOnAction(e -> Fx.openPath(PhotoBackground.folder()));
+        Button photoReload = Fx.button(I18n.t("settings.photoReload"), Icons.REFRESH);
+        photoReload.setOnAction(e -> window.applyBackground());
+
         VBox content = new VBox(14,
                 card(I18n.t("settings.interface"),
                         field(I18n.t("settings.language"), lang),
                         field(I18n.t("settings.accent"), accents)),
+                card(I18n.t("settings.background"), photos, shuffle,
+                        field(I18n.t("settings.photoDim"), Fx.row(10, dimSlider, dimValue)),
+                        hint(I18n.t("settings.photoHint")),
+                        Fx.row(8, photoFolder, photoReload)),
                 card(I18n.t("settings.game"),
                         Fx.label(I18n.t("settings.memory"), "dim", "small"), memory, Fx.row(0, Fx.spacer(), saveMem),
                         field(I18n.t("settings.jvmArgs"), Fx.row(8, jvm, jvmReset)),

@@ -1,5 +1,6 @@
 package dev.nexus.client.util;
 
+import dev.nexus.client.util.Lang;
 public final class TimeFormat {
     private TimeFormat() {}
 
@@ -34,8 +35,8 @@ public final class TimeFormat {
     /** "1h 04m", "12m 05s", "42s". */
     public static String humanDuration(long totalSeconds) {
         long h = totalSeconds / 3600, m = (totalSeconds % 3600) / 60, s = totalSeconds % 60;
-        if (h > 0) return h + "h " + (m < 10 ? "0" : "") + m + "m";
-        if (m > 0) return m + "m " + (s < 10 ? "0" : "") + s + "s";
-        return s + "s";
+        if (h > 0) return Lang.fmt("{0}h {1}m", h, (m < 10 ? "0" : "") + m);
+        if (m > 0) return Lang.fmt("{0}m {1}s", m, (s < 10 ? "0" : "") + s);
+        return Lang.fmt("{0}s", s);
     }
 }

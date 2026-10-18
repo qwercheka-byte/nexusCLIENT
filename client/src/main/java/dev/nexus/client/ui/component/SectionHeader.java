@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.component;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.render.Render2D;
 import dev.nexus.client.render.TextRender;
 import dev.nexus.client.ui.theme.Theme;
@@ -12,7 +13,7 @@ public class SectionHeader extends Component {
     private final String title;
 
     public SectionHeader(String title) {
-        this.title = title.toUpperCase(Locale.ROOT);
+        this.title = Lang.tr(title).toUpperCase(Locale.ROOT);
         this.height = 18;
     }
 

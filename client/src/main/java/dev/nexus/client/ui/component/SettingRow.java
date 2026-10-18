@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.component;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.render.Render2D;
 import dev.nexus.client.render.TextRender;
@@ -38,7 +39,7 @@ public class SettingRow extends Component {
         this.visibility = new SmoothValue(setting.isVisible() ? 1f : 0f, 16f);
         this.tooltip = setting.getDescription().isEmpty()
                 ? "Right-click to reset"
-                : setting.getDescription() + "\n\nRight-click to reset";
+                : setting.getDescription() + "\n\n" + Lang.tr("Right-click to reset");
         if (setting == Nexus.settings().accentPreset && setting instanceof ModeSetting m) {
             control = new AccentSwatches(m, () -> Nexus.settings().customAccent.get());
             layout = Layout.INLINE;

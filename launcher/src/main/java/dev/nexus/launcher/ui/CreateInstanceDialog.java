@@ -34,13 +34,18 @@ final class CreateInstanceDialog {
         Label nexusHint = Fx.label(I18n.t("create.nexusHint"), "faint", "tiny");
         nexusHint.setWrapText(true);
         VBox nexusBox = new VBox(3, nexus, nexusHint);
+        CheckBox perf = new CheckBox(I18n.t("create.perf"));
+        perf.setSelected(true);
+        Label perfHint = Fx.label(I18n.t("create.perfHint"), "faint", "tiny");
+        perfHint.setWrapText(true);
+        VBox perfBox = new VBox(3, perf, perfHint);
         Label hint = Fx.label(I18n.t("create.hint"), "faint", "small");
         hint.setWrapText(true);
 
         HBox nameRow = new HBox(14, new VBox(5, Fx.label(I18n.t("instance.name"), "dim", "small"), name),
                 new VBox(9, Fx.label(I18n.t("instance.color"), "dim", "small"), colors));
         HBox.setHgrow(nameRow.getChildren().get(0), javafx.scene.layout.Priority.ALWAYS);
-        m.content(nameRow, picker, nexusBox, hint);
+        m.content(nameRow, picker, nexusBox, perfBox, hint);
 
         m.closeButton(I18n.t("common.cancel"), null, null);
         Button create = m.button(I18n.t("create.create"), "primary", () -> { });
@@ -50,6 +55,9 @@ final class CreateInstanceDialog {
             boolean nexusOk = NexusClientStore.best(picker.loader(), picker.mcVersion()) != null;
             nexusBox.setVisible(nexusOk);
             nexusBox.setManaged(nexusOk);
+            boolean perfOk = picker.mcVersion() != null && dev.nexus.launcher.modrinth.PerformancePack.supports(picker.loader());
+            perfBox.setVisible(perfOk);
+            perfBox.setManaged(perfOk);
             // suggest a name until the user types one
             String suggestion = picker.mcVersion() == null ? "" :
                     (picker.loader() == LoaderType.VANILLA ? "" : picker.loader().display() + " ") + picker.mcVersion();
@@ -75,6 +83,7 @@ final class CreateInstanceDialog {
             String lv = picker.loaderVersion();
             String color = colors.selected();
             boolean withNexus = nexusBox.isVisible() && nexus.isSelected();
+            boolean withPerf = perfBox.isVisible() && perf.isSelected();
             create.setDisable(true);
             create.setText(I18n.t("create.creating"));
             Fx.async(() -> {
@@ -89,7 +98,16 @@ final class CreateInstanceDialog {
                         warnings.add(I18n.t("create.fabricApiFailed", Fx.errorText(ex)));
                     }
                 }
-                return new Object[]{inst, warnings};
+                dev.nexus.launcher.modrinth.PerformancePack.Result perfResult = null;
+                if (withPerf) {
+                    try {
+                        perfResult = dev.nexus.launcher.modrinth.PerformancePack.install(inst, new Progress());
+                    } catch (Exception ex) {
+                        Log.warn("Performance mods install failed: " + ex.getMessage());
+                        warnings.add(I18n.t("perf.failed", Fx.errorText(ex)));
+                    }
+                }
+                return new Object[]{inst, warnings, perfResult};
             }, res -> {
                 Instance inst = (Instance) res[0];
                 @SuppressWarnings("unchecked") List<String> warnings = (List<String>) res[1];
@@ -98,6 +116,11 @@ final class CreateInstanceDialog {
                 window.instancesChanged();
                 Toasts.success(I18n.t("create.done", inst.name));
                 warnings.forEach(Toasts::error);
+                if (res[2] != null) {
+                    dev.nexus.launcher.modrinth.PerformancePack.Result pr = (dev.nexus.launcher.modrinth.PerformancePack.Result) res[2];
+                    if (!pr.unavailable().isEmpty()) Toasts.info(I18n.t("perf.unavailable", String.join(", ", pr.unavailable())));
+                    if (!pr.failed().isEmpty()) Toasts.error(I18n.t("perf.failed", String.join(", ", pr.failed())));
+                }
             }, ex -> {
                 create.setDisable(false);
                 create.setText(I18n.t("create.create"));

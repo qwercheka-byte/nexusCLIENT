@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.component;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.ui.animation.AnimationClock;
 import dev.nexus.client.render.Icon;
 import dev.nexus.client.render.IconRender;
@@ -39,14 +40,14 @@ public class KeybindButton extends Component {
         int color;
         if (listening) {
             float pulse = 0.2f + 0.8f * AnimationClock.wave(1130);
-            text = "Press a key…";
+            text = Lang.tr("Press a key…");
             color = ColorUtil.mulAlpha(Theme.TEXT, pulse);
         } else {
-            text = setting.isBound() ? setting.keyName() : "None";
+            text = setting.isBound() ? setting.keyName() : Lang.tr("None");
             color = setting.isBound() ? Theme.TEXT : Theme.TEXT_DIM;
         }
         IconRender.draw(ctx, Icon.KEYBOARD, x + 5, y + (height - 9) / 2f, 9, listening ? Theme.accentBright() : Theme.TEXT_DIM);
-        TextRender.drawCentered(ctx, TextRender.ellipsize(text, (int) width - 20), x + 8 + width / 2f, TextRender.centerY(y, height), color);
+        TextRender.drawCenteredRaw(ctx, TextRender.ellipsizeRaw(text, (int) width - 20), x + 8 + width / 2f, TextRender.centerY(y, height), color);
         if (isHovered(mx, my) && !listening) UiContext.tooltip("Click to bind · Backspace clears", mx, my);
     }
 

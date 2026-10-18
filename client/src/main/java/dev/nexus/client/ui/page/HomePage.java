@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.page;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.Session;
 import dev.nexus.client.module.Category;
@@ -63,7 +64,7 @@ public final class HomePage extends Page {
         if (second == statsSecond) return;
         statsSecond = second;
         Session s = Nexus.session();
-        greeting = "Welcome back, " + s.playerName();
+        greeting = Lang.fmt("Welcome back, {0}", s.playerName());
         if (s.inSession()) {
             sessionLabel = "In world";
             sessionValue = TimeFormat.humanDuration(s.sessionSeconds());
@@ -118,7 +119,7 @@ public final class HomePage extends Page {
             Toggle t = quickToggles.get(i);
             t.setBounds(qx + qw - Toggle.WIDTH - 6, yy + (qh - Toggle.HEIGHT) / 2f, Toggle.WIDTH, Toggle.HEIGHT);
             t.render(ctx, mx, my);
-            if (hov && !t.isHovered(mx, my)) UiContext.tooltip(m.getDescription() + "\n\nClick to open settings", mx, my);
+            if (hov && !t.isHovered(mx, my)) UiContext.tooltip(m.getDescription() + "\n\n" + Lang.tr("Click to open settings"), mx, my);
         }
         int qrows = (quick.size() + qcols - 1) / qcols;
 

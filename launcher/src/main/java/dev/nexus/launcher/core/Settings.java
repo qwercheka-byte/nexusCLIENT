@@ -37,6 +37,10 @@ public final class Settings {
     public boolean windowMaximized = false;
     /** Check for launcher / NEXUS Client updates on start-up. */
     public boolean checkUpdates = true;
+    /** Animated photo background of the window (photos from <data>/backgrounds or the bundled ones). */
+    public boolean photoBackground = true;
+    public double photoDim = 0.55;
+    public boolean photoShuffle = true;
     /** Address of nexus-update.json entered by the user; empty = the address built into the launcher. */
     public String updateUrl = "";
     /** Launcher version of the previous run, used to show "updated to X" once. */
@@ -116,6 +120,7 @@ public final class Settings {
         if (lastVersion == null) lastVersion = "";
         if (!(windowWidth >= 900) || windowWidth > 10000) windowWidth = d.windowWidth;
         if (!(windowHeight >= 600) || windowHeight > 10000) windowHeight = d.windowHeight;
+        if (!(photoDim >= 0) || photoDim > 0.9) photoDim = d.photoDim;
         schema = 1;
         return this;
     }

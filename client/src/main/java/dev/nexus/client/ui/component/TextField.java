@@ -98,15 +98,15 @@ public class TextField extends Component {
             TextRender.draw(ctx, TextRender.ellipsize(placeholder, (int) innerW), tx, ty, Theme.TEXT_DIM);
         }
         // keep the cursor visible
-        float cursorPx = TextRender.width(text.substring(0, Math.min(cursor, text.length())));
+        float cursorPx = TextRender.widthRaw(text.substring(0, Math.min(cursor, text.length())));
         if (cursorPx - scrollX > innerW - 2) scrollX = cursorPx - innerW + 2;
         if (cursorPx - scrollX < 0) scrollX = cursorPx;
-        if (TextRender.width(text) < innerW) scrollX = 0;
+        if (TextRender.widthRaw(text) < innerW) scrollX = 0;
         float drawX = tx - scrollX;
         if (allSelected && !text.isEmpty() && focused) {
-            Render2D.rect(ctx, drawX, y + 3, TextRender.width(text), height - 6, Theme.accentSoft());
+            Render2D.rect(ctx, drawX, y + 3, TextRender.widthRaw(text), height - 6, Theme.accentSoft());
         }
-        TextRender.draw(ctx, text, drawX, ty, valid ? Theme.TEXT : 0xFFFCA5A5);
+        TextRender.drawRaw(ctx, text, drawX, ty, valid ? Theme.TEXT : 0xFFFCA5A5, false);
         if (focused && AnimationClock.blink(1060)) {
             Render2D.rect(ctx, drawX + cursorPx, y + 4, 1, height - 8, Theme.accentBright());
         }

@@ -1,5 +1,6 @@
 package dev.nexus.client.ui;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.module.Module;
 import dev.nexus.client.render.Icon;
@@ -354,12 +355,12 @@ public final class NexusScreen extends Screen {
 
         if (this.compact) {
             if (phov) {
-                UiContext.tooltip("Profile: " + profile, mx, my);
+                UiContext.tooltip(Lang.fmt("Profile: {0}", profile), mx, my);
             }
         } else {
             String name = this.client != null ? this.client.getSession().getUsername() : "Player";
             TextRender.draw(ctx, TextRender.ellipsize(name, (int)pw - 34), px + 30.0F, py + 6.0F, -1249805);
-            TextRender.drawScaled(ctx, TextRender.ellipsize("Profile · " + profile, (int)((pw - 34.0F) / 0.7F)), px + 30.0F, py + 17.0F, 0.7F, -10460550, false);
+            TextRender.drawScaled(ctx, TextRender.ellipsizeRaw(Lang.fmt("Profile · {0}", profile), (int)((pw - 34.0F) / 0.7F)), px + 30.0F, py + 17.0F, 0.7F, -10460550, false);
         }
     }
 

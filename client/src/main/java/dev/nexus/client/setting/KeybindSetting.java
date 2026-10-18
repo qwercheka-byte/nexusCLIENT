@@ -1,5 +1,6 @@
 package dev.nexus.client.setting;
 
+import dev.nexus.client.util.Lang;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import dev.nexus.client.util.KeyNames;
@@ -17,6 +18,7 @@ public final class KeybindSetting extends Setting<Integer> {
     public static final int MOUSE_BASE = 1000;
     private String cachedName;
     private int cachedFor = Integer.MIN_VALUE;
+    private int cachedLang = -1;
 
     public KeybindSetting(String id, String name, String description, int defaultValue) {
         super(id, name, description, defaultValue);
@@ -58,9 +60,10 @@ public final class KeybindSetting extends Setting<Integer> {
 
     /** Display name, cached until the binding changes. */
     public String keyName() {
-        if (cachedFor != value || cachedName == null) {
+        if (cachedFor != value || cachedName == null || cachedLang != Lang.revision()) {
             cachedName = KeyNames.name(value);
             cachedFor = value;
+            cachedLang = Lang.revision();
         }
         return cachedName;
     }

@@ -78,6 +78,11 @@ processResources {
     filesMatching('dev/nexus/launcher/build.properties') {
         expand buildProps
     }
+    // photo background: the same photos as the NEXUS Client main menu (single source in the client project)
+    from(new File(clientDir, 'src/main/resources/assets/nexus/backgrounds')) {
+        include 'bg_*.jpg'
+        into 'dev/nexus/launcher/backgrounds'
+    }
     if (clientPackageOverride) {
         from(file(clientPackageOverride)) { into 'bundled'; rename { clientPackageName } }
     } else {

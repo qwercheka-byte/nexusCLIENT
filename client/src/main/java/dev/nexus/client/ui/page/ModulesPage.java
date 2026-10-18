@@ -1,5 +1,6 @@
 package dev.nexus.client.ui.page;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.module.Category;
 import dev.nexus.client.module.Module;
@@ -76,7 +77,7 @@ public final class ModulesPage extends Page {
         int enabled = Nexus.modules().enabledCount();
         if (enabled != countFor) {
             countFor = enabled;
-            countText = enabled + " of " + Nexus.modules().all().size() + " enabled · click a card for settings";
+            countText = Lang.fmt("{0} of {1} enabled · click a card for settings", enabled, Nexus.modules().all().size());
         }
         return countText;
     }

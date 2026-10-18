@@ -1,5 +1,6 @@
 package dev.nexus.client.module.impl.hud;
 
+import dev.nexus.client.util.Lang;
 import dev.nexus.client.Nexus;
 import dev.nexus.client.hud.HudModule;
 import dev.nexus.client.hud.HudStyle;
@@ -39,7 +40,7 @@ public final class ModuleListHudModule extends HudModule {
     }
 
     private final List<Entry> entries = new ArrayList<>();
-    private int builtStamp = -1, changes;
+    private int builtStamp = -1, changes, builtLang = -1;
 
     public ModuleListHudModule() {
         super("module_list", "Module List", "Animated list of your enabled modules.", false, END, START, 4, 4);
@@ -58,6 +59,7 @@ public final class ModuleListHudModule extends HudModule {
 
     private void rebuild() {
         builtStamp = changes;
+        builtLang = Lang.revision();
         List<Entry> old = new ArrayList<>(entries);
         entries.clear();
         for (Module m : Nexus.modules().all()) {
@@ -78,7 +80,7 @@ public final class ModuleListHudModule extends HudModule {
 
     @Override
     public boolean render(DrawContext ctx, boolean editor) {
-        if (builtStamp != changes || entries.isEmpty()) rebuild();
+        if (builtStamp != changes || builtLang != Lang.revision() || entries.isEmpty()) rebuild();
         boolean right = isRightAligned();
         float rowH = 11f, padX = 4f;
         float maxW = 0, totalH = 0;
