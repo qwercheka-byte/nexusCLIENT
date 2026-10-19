@@ -1,0 +1,14 @@
+accessWidener v2 named
+
+# Since 1.21.6 the GUI is deferred: custom shapes and sub-pixel text are recorded as render states into the
+# same GuiRenderState that DrawContext uses (with its current scissor), so vanilla layering/draw order applies.
+accessible field net/minecraft/client/gui/DrawContext state Lnet/minecraft/client/gui/render/state/GuiRenderState;
+accessible field net/minecraft/client/gui/DrawContext scissorStack Lnet/minecraft/client/gui/DrawContext$ScissorStack;
+accessible class net/minecraft/client/gui/DrawContext$ScissorStack
+
+# Fullbright writes the gamma option value directly (SimpleOption#setValue rejects values > 1.0).
+# The original value is always restored (see FullbrightModule and GameOptionsMixin).
+accessible field net/minecraft/client/option/SimpleOption value Ljava/lang/Object;
+
+# NEXUS restyle of vanilla lists draws the selection/hover of entries (EntryListWidgetMixin).
+accessible class net/minecraft/client/gui/widget/EntryListWidget$Entry

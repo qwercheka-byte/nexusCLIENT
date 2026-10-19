@@ -1,0 +1,45 @@
+package dev.nexus.client.module.impl.hud;
+
+import dev.nexus.client.hud.HudModule;
+import dev.nexus.client.hud.HudStyle;
+import dev.nexus.client.render.TextRender;
+import dev.nexus.client.setting.BooleanSetting;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.network.PlayerListEntry;
+
+/** Example: latency to the current server. */
+public final class PingHudModule extends HudModule {
+    private final BooleanSetting suffix = add(new BooleanSetting("suffix", "Suffix", "Append \"ms\"", true));
+
+    private int cachedPing = Integer.MIN_VALUE;
+    private boolean cachedSuffix;
+    private String text = "";
+
+    public PingHudModule() {
+        super("ping_hud", "Ping", "Shows your latency to the server.", false, START, START, 4, 70);
+    }
+
+    @Override
+    public boolean render(DrawContext ctx, boolean editor) {
+        int ping = -1;
+        if (mc.player != null && mc.getNetworkHandler() != null) {
+            PlayerListEntry entry = mc.getNetworkHandler().getPlayerListEntry(mc.player.getUuid());
+            if (entry != null) ping = entry.getLatency();
+        }
+        if (ping < 0) {
+            if (!editor) return false;
+            ping = 42;                                   // sample value for the HUD editor preview
+        }
+        if (ping != cachedPing || suffix.isOn() != cachedSuffix) {   // rebuild the string only on change
+            cachedPing = ping;
+            cachedSuffix = suffix.isOn();
+            text = cachedSuffix ? ping + " ms" : Integer.toString(ping);
+        }
+        float w = HudStyle.PAD_X * 2 + TextRender.width(text);
+        float h = HudStyle.PAD_Y * 2 + 8;
+        setSize(w, h);
+        HudStyle.panel(ctx, this, w, h);
+        HudStyle.text(ctx, text, HudStyle.PAD_X, HudStyle.PAD_Y + 0.5f, HudStyle.VALUE);
+        return true;
+    }
+}

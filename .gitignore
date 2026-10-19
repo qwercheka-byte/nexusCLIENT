@@ -1,0 +1,7 @@
+.gradle/
+build/
+out/
+*.log
+run/
+mc-run/
+launcher/dist-release/

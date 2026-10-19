@@ -1,0 +1,97 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    // Fabric / Minecraft repositories are added by Loom automatically.
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/nexus.accesswidener")
+
+    runs {
+        client {
+            vmArgs "-Xmx1G"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+               "minecraft_version": project.minecraft_version,
+               "loader_version": project.loader_version
+    }
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release.set(targetJavaVersion)
+    it.options.compilerArgs << "-Xlint:deprecation"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+}
+
+/*
+ * Packaging. The build does not produce .jar files: the intermediate (dev-mapped) archive and the final
+ * remapped mod are written as .zip packages. A Fabric mod is a zip archive; Fabric Loader only requires the
+ * file in the mods folder to end with ".jar", so the package gets that name when it is installed:
+ *   - by NEXUS Launcher (bundled / auto-update), or
+ *   - by ./gradlew installMod -PmodsDir=<path to .minecraft/mods>
+ *
+ *   ./gradlew build        -> build/libs/nexus-client-<version>+mc<minecraft>.zip
+ */
+def packageName = "${project.archives_base_name}-${project.version}+mc${project.minecraft_version}"
+
+jar {
+    archiveExtension = 'zip'
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}
+
+remapJar {
+    archiveFileName = "${packageName}.zip"
+}
+
+tasks.register('installMod', Copy) {
+    group = 'nexus'
+    description = 'Copies the mod into a mods folder (-PmodsDir=..., default: the official launcher .minecraft/mods)'
+    dependsOn remapJar
+    def defaultMods = System.getenv('APPDATA') != null
+            ? new File(System.getenv('APPDATA'), '.minecraft/mods')
+            : new File(System.getProperty('user.home'), '.minecraft/mods')
+    def modsDir = file(project.findProperty('modsDir') ?: defaultMods)
+    from(remapJar.archiveFile)
+    into(modsDir)
+    rename { "${packageName}.jar" }
+    doFirst {
+        // remove older NEXUS Client builds so only one version is loaded
+        modsDir.mkdirs()
+        (modsDir.listFiles() ?: []).findAll { it.name ==~ /nexus-client-.*\.jar(\.disabled)?/ && it.name != "${packageName}.jar" }
+                .each { it.delete() }
+    }
+    doLast { println "Installed ${packageName}.jar into ${modsDir}" }
+}

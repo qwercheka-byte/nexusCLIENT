@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.nexus.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CheckboxWidgetMixin",
+    "EntryListWidgetMixin",
+    "GameMenuScreenMixin",
+    "GameOptionsMixin",
+    "GameRendererMixin",
+    "IconsMixin",
+    "InGameHudMixin",
+    "InactivityFpsLimiterMixin",
+    "KeyboardMixin",
+    "MouseMixin",
+    "PlayerEntityRenderStateMixin",
+    "PlayerEntityRendererMixin",
+    "PressableWidgetMixin",
+    "ScreenAccessor",
+    "ScreenMixin",
+    "ScrollableWidgetMixin",
+    "SliderWidgetMixin",
+    "SplashTextRendererAccessor",
+    "TabButtonWidgetMixin",
+    "TextFieldWidgetMixin",
+    "TitleScreenMixin",
+    "WindowMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
