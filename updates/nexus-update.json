@@ -1,0 +1,26 @@
+{
+    "schema": 1,
+    "page": "https://github.com/qwercheka-byte/nexusCLIENT/releases/latest",
+    "launcher": {
+        "version": "1.2.0",
+        "changelog": "1.2.0 — Главное меню в стиле Sky DLC: фото-фон, приветствие игрока, три фотокарточки (последняя сборка, все сборки, аккаунты), нижняя панель быстрых действий. Лицензионный гейт без изменений.",
+        "files": {
+            "win-app": {
+                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-launcher-1.2.0-app.zip",
+                "sha256": "50f1ae449da469a6fced936f149f7bd193cc91bc26c9077701afc6edc0cff13b",
+                "size": 7636573
+            }
+        }
+    },
+    "client": {
+        "version": "1.0.8",
+        "changelog": "1.0.8 — Титульный экран в одном стиле с лаунчером (Sky DLC): приветствие, три фотокарточки (одиночная, сетевая, моды NEXUS), аккуратная панель настроек и выхода, фото из слайдшоу меню.",
+        "files": {
+            "1.21.11": {
+                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-client-1.0.8-mc1.21.11.zip",
+                "sha256": "45a44bd48e9ad085f3e4720af3b0eb21e4eb5af3bc1fc538af0e1fc2930e1d29",
+                "size": 3605764
+            }
+        }
+    }
+}

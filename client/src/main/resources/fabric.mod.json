@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "nexus",
+  "version": "${version}",
+  "name": "NEXUS Client",
+  "description": "A minimalist, modern utility client: HUD, visuals, profiles and a smooth animated interface.",
+  "authors": ["NEXUS Team"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/nexus/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.nexus.client.NexusClient"]
+  },
+  "mixins": ["nexus.mixins.json"],
+  "accessWidener": "nexus.accesswidener",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

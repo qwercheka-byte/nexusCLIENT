@@ -1,0 +1,13 @@
+{
+  "nexus.title.open": "NEXUS Client",
+  "nexus.title.greeting.morning": "Доброе утро, %s",
+  "nexus.title.greeting.day": "Добрый день, %s",
+  "nexus.title.greeting.evening": "Добрый вечер, %s",
+  "nexus.title.greeting.night": "Доброй ночи, %s",
+  "nexus.title.sky.greeting": "С возвращением, %s",
+  "nexus.title.sky.hint": "Выберите, с чего начать",
+  "nexus.title.sky.card1": "Одиночная игра",
+  "nexus.title.sky.card2": "Сетевая игра",
+  "nexus.title.sky.card3": "Моды и конфиги",
+  "nexus.title.sky.play": "Играть →"
+}

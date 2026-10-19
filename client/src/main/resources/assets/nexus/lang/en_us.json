@@ -1,0 +1,13 @@
+{
+  "nexus.title.open": "NEXUS Client",
+  "nexus.title.greeting.morning": "Good morning, %s",
+  "nexus.title.greeting.day": "Good afternoon, %s",
+  "nexus.title.greeting.evening": "Good evening, %s",
+  "nexus.title.greeting.night": "Good night, %s",
+  "nexus.title.sky.greeting": "Good to see you, %s",
+  "nexus.title.sky.hint": "Pick where to start",
+  "nexus.title.sky.card1": "Singleplayer",
+  "nexus.title.sky.card2": "Multiplayer",
+  "nexus.title.sky.card3": "Mods & configs",
+  "nexus.title.sky.play": "Play →"
+}

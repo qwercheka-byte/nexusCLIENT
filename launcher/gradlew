@@ -1,0 +1,67 @@
+#!/bin/sh
+# ---------------------------------------------------------------------------------------------
+# Gradle bootstrap script (replacement for the standard Gradle wrapper, without gradle-wrapper.jar).
+#
+# Reads distributionUrl and distributionSha256Sum from gradle/wrapper/gradle-wrapper.properties,
+# downloads that official Gradle distribution once, verifies its SHA-256, unpacks it into
+# $GRADLE_USER_HOME/nexus-dists and runs it with all given arguments.
+# Requirements: JDK 21 (JAVA_HOME or java on PATH), curl or wget, sha256sum or shasum, unzip or the JDK "jar" tool.
+# ---------------------------------------------------------------------------------------------
+set -e
+
+APP_HOME=$(cd "$(dirname "$0")" && pwd -P)
+PROPS="$APP_HOME/gradle/wrapper/gradle-wrapper.properties"
+[ -f "$PROPS" ] || { echo "ERROR: $PROPS not found" >&2; exit 1; }
+
+prop() {
+    sed -n "s/^$1=//p" "$PROPS" | tr -d '\r' | sed 's/\\:/:/g' | head -n 1
+}
+
+URL=$(prop distributionUrl)
+SHA=$(prop distributionSha256Sum)
+[ -n "$URL" ] || { echo "ERROR: distributionUrl missing in $PROPS" >&2; exit 1; }
+[ -n "$SHA" ] || { echo "ERROR: distributionSha256Sum missing in $PROPS" >&2; exit 1; }
+
+ZIP_NAME=$(basename "$URL")            # gradle-9.2.1-bin.zip
+DIST_NAME=${ZIP_NAME%.zip}             # gradle-9.2.1-bin
+VERSION_DIR=$(echo "$DIST_NAME" | sed 's/-bin$//; s/-all$//')   # gradle-9.2.1
+BASE="${GRADLE_USER_HOME:-$HOME/.gradle}/nexus-dists/$DIST_NAME"
+GRADLE_BIN="$BASE/$VERSION_DIR/bin/gradle"
+
+if [ ! -x "$GRADLE_BIN" ]; then
+    mkdir -p "$BASE"
+    TMP="$BASE/$ZIP_NAME.part"
+    echo "Downloading $URL"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fL --retry 3 -o "$TMP" "$URL"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "$TMP" "$URL"
+    else
+        echo "ERROR: neither curl nor wget is installed" >&2; exit 1
+    fi
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        ACTUAL=$(sha256sum "$TMP" | cut -d' ' -f1)
+    else
+        ACTUAL=$(shasum -a 256 "$TMP" | cut -d' ' -f1)
+    fi
+    if [ "$ACTUAL" != "$SHA" ]; then
+        rm -f "$TMP"
+        echo "ERROR: SHA-256 mismatch for $ZIP_NAME (expected $SHA, got $ACTUAL)" >&2
+        exit 1
+    fi
+
+    rm -rf "$BASE/$VERSION_DIR"
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -q "$TMP" -d "$BASE"
+    else
+        JAR_TOOL=jar
+        [ -n "$JAVA_HOME" ] && JAR_TOOL="$JAVA_HOME/bin/jar"
+        (cd "$BASE" && "$JAR_TOOL" xf "$TMP")
+    fi
+    rm -f "$TMP"
+    chmod +x "$GRADLE_BIN"
+fi
+
+cd "$APP_HOME"
+exec "$GRADLE_BIN" "$@"

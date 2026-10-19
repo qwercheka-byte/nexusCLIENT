@@ -1,0 +1,6 @@
+**/build/
+**/.gradle/
+launcher/packaging/**/*.o
+launcher/dist-release/
+client/run/
+dist-out/
