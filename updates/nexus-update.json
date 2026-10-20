@@ -2,24 +2,24 @@
     "schema": 1,
     "page": "https://github.com/qwercheka-byte/nexusCLIENT/releases/latest",
     "launcher": {
-        "version": "1.2.0",
-        "changelog": "1.2.0 — Главное меню в стиле Sky DLC: фото-фон, приветствие игрока, три фотокарточки (последняя сборка, все сборки, аккаунты), нижняя панель быстрых действий. Лицензионный гейт без изменений.",
+        "version": "1.2.2",
+        "changelog": "1.2.2 — Клиент обновлён до 1.0.10: метки (Waypoints) на клавишу B, метка смерти, компас с дистанцией, команды /wp.\n1.2.1 — Хотфикс главного меню Sky-стиля в игре: правильное центрирование приветствия, цвета подписей, пилюли панели, аватар-чип игрока.",
         "files": {
             "win-app": {
-                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-launcher-1.2.0-app.zip",
-                "sha256": "50f1ae449da469a6fced936f149f7bd193cc91bc26c9077701afc6edc0cff13b",
-                "size": 7636573
+                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-launcher-1.2.2-app.zip",
+                "sha256": "0e6983aa8e2012d5e8a4aec678fe16faed819dcac057ef5375549439c0115a57",
+                "size": 7650438
             }
         }
     },
     "client": {
-        "version": "1.0.8",
-        "changelog": "1.0.8 — Титульный экран в одном стиле с лаунчером (Sky DLC): приветствие, три фотокарточки (одиночная, сетевая, моды NEXUS), аккуратная панель настроек и выхода, фото из слайдшоу меню.",
+        "version": "1.0.10",
+        "changelog": "1.0.10 — Метки (Waypoints): клавиша B ставит метку где вы стоите, метка смерти ставится автоматически, сверху экрана компас полоса с метками и дистанцией. Команды чата/консоли: /wp list, /wp del <имя>, /wp rename <старое> <новое>, /wp clear. Хранятся локально в waypoints.json.\n1.0.9 — Титульный экран Sky-стиля: точное центрирование текста, цветные пилюли, аватар игрока, округлые карточки с фото без размытия.",
         "files": {
             "1.21.11": {
-                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-client-1.0.8-mc1.21.11.zip",
-                "sha256": "45a44bd48e9ad085f3e4720af3b0eb21e4eb5af3bc1fc538af0e1fc2930e1d29",
-                "size": 3605764
+                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-client-1.0.10-mc1.21.11.zip",
+                "sha256": "721851fed973857c989da0f2cb1862bf84c162739d59585654b5a7a985cb07bd",
+                "size": 3619891
             }
         }
     }
