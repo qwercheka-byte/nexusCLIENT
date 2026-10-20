@@ -2,24 +2,24 @@
     "schema": 1,
     "page": "https://github.com/qwercheka-byte/nexusCLIENT/releases/latest",
     "launcher": {
-        "version": "1.2.2",
-        "changelog": "1.2.2 — Клиент обновлён до 1.0.10: метки (Waypoints) на клавишу B, метка смерти, компас с дистанцией, команды /wp.\n1.2.1 — Хотфикс главного меню Sky-стиля в игре: правильное центрирование приветствия, цвета подписей, пилюли панели, аватар-чип игрока.",
+        "version": "1.2.3",
+        "changelog": "1.2.3 — Клиент обновлён до 1.0.11: главное меню по макету Lunaris — резкий фон, новые фото карточек, FunTime-онлайн в подписи, кнопка Играть в карточке.\n1.2.2 — Клиент обновлён до 1.0.10: метки (Waypoints) на клавишу B, метка смерти, компас с дистанцией, команды /wp.\n1.2.1 — Хотфикс главного меню Sky-стиля в игре: правильное центрирование приветствия, цвета подписей, пилюли панели, аватар-чип игрока.",
         "files": {
             "win-app": {
-                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-launcher-1.2.2-app.zip",
-                "sha256": "0e6983aa8e2012d5e8a4aec678fe16faed819dcac057ef5375549439c0115a57",
-                "size": 7650438
+                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-launcher-1.2.3-app.zip",
+                "sha256": "ca9a56f5edf98d5d5cb5c3f14b0058b4a6969c00b12c5e442cd7a79efb42b82c",
+                "size": 8111833
             }
         }
     },
     "client": {
-        "version": "1.0.10",
-        "changelog": "1.0.10 — Метки (Waypoints): клавиша B ставит метку где вы стоите, метка смерти ставится автоматически, сверху экрана компас полоса с метками и дистанцией. Команды чата/консоли: /wp list, /wp del <имя>, /wp rename <старое> <новое>, /wp clear. Хранятся локально в waypoints.json.\n1.0.9 — Титульный экран Sky-стиля: точное центрирование текста, цветные пилюли, аватар игрока, округлые карточки с фото без размытия.",
+        "version": "1.0.11",
+        "changelog": "1.0.11 — Главное меню по макету Lunaris: резкий фон без размытия, новые фото карточек, иконка-квадратик в карточке, живая подпись (последний мир и время, FunTime — онлайн пингом, ник), голубая кнопка Играть внутри активной карточки.\n1.0.10 — Метки (Waypoints): клавиша B ставит метку где вы стоите, метка смерти ставится автоматически, сверху экрана компас полоса с метками и дистанцией. Команды чата/консоли: /wp list, /wp del <имя>, /wp rename <старое> <новое>, /wp clear. Хранятся локально в waypoints.json.\n1.0.9 — Титульный экран Sky-стиля: точное центрирование текста, цветные пилюли, аватар игрока, округлые карточки с фото без размытия.",
         "files": {
             "1.21.11": {
-                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-client-1.0.10-mc1.21.11.zip",
-                "sha256": "721851fed973857c989da0f2cb1862bf84c162739d59585654b5a7a985cb07bd",
-                "size": 3619891
+                "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-client-1.0.11-mc1.21.11.zip",
+                "sha256": "5e0f4cb39e7f1e1ebd59e0dca9d70fba47de7ab9b09d4ddcaa53b02dc4c1d5e9",
+                "size": 4073973
             }
         }
     }
