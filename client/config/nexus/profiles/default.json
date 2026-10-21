@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "name": "default",
-  "modified": 1792475171716,
+  "modified": 1792581042423,
   "modules": {
     "fullbright": {
       "enabled": false,
@@ -89,7 +89,7 @@
       }
     },
     "coordinates_hud": {
-      "enabled": true,
+      "enabled": false,
       "key": -1,
       "settings": {
         "scale": 1.0,
@@ -110,7 +110,7 @@
       }
     },
     "fps_counter": {
-      "enabled": true,
+      "enabled": false,
       "key": -1,
       "settings": {
         "scale": 1.0,
@@ -233,6 +233,24 @@
       "enabled": false,
       "key": -1,
       "settings": {}
+    },
+    "waypoints": {
+      "enabled": true,
+      "key": -1,
+      "settings": {
+        "create-key": 66,
+        "compass": true,
+        "death-marks": true,
+        "fov": 120.0
+      }
+    },
+    "halo_hud": {
+      "enabled": true,
+      "key": -1,
+      "settings": {
+        "hide-vanilla": true,
+        "auto-hide-dupes": true
+      }
     },
     "unfocused_fps": {
       "enabled": false,

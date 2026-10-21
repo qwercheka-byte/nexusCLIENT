@@ -1,15 +1,19 @@
 package dev.nexus.client.module.impl.hud;
 
-import dev.nexus.client.Nexus;
 import dev.nexus.client.event.events.HudRenderEvent;
 import dev.nexus.client.event.events.ModuleToggleEvent;
 import dev.nexus.client.event.events.TickEvent;
 import dev.nexus.client.event.events.WorldJoinEvent;
+import dev.nexus.client.mixin.ItemCooldownAccessor;
+import dev.nexus.client.mixin.ItemCooldownEntryAccessor;
+import dev.nexus.client.Nexus;
 import dev.nexus.client.module.Category;
 import dev.nexus.client.module.Module;
+import dev.nexus.client.setting.BooleanSetting;
 import dev.nexus.client.render.Render2D;
 import dev.nexus.client.render.TextRender;
-import dev.nexus.client.mixin.ItemCooldownAccessor;
+import dev.nexus.client.waypoint.Waypoint;
+import dev.nexus.client.waypoint.WaypointStore;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.network.PlayerListEntry;
@@ -32,26 +36,27 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * "Halo"-style HUD pack, one composite module (all panels are positioned like the reference shot):
- * top-left info pill (avatar, nick, fps, ping, clock) + server pill (address, TPS estimate),
- * left column: active module list parsed from the enabled modules,
- * top-right: potion effects card + item cooldowns card (reads the real ItemCooldownManager),
- * centre-above-crosshair target pill (head, name, hp bar) with small stat chips,
- * bottom-left coordinates pill with blocks-per-second, bottom-right notification toasts.
+ * Dark-minimal "night survival" HUD pack (reference: thin white lines, translucent dark panels,
+ * small sans-serif, dark-gray/white palette only):
+ *  - top-left  : one translucent panel with vitals + active effects + item cooldowns rows,
+ *  - top-right : stacked stat blocks (nick/fps/ping/clock · server+tps · coordinates+bps),
+ *  - bottom-centre: floating chip with the NEAREST waypoint name and distance,
+ *  - bottom-left : single tiny technical text line (client version, fps),
+ *  - centre      : minimal target chip (name + thin hp bar, armor/totems inline),
+ *  - bottom-right: small notification toasts.
  * Everything is read from vanilla client state — nothing is sent to the server.
  */
 public final class HaloHudModule extends Module {
     private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm");
 
-    // ---------------------------------------------------------------- colors (dark glass)
-    private static final int PILL = 0xC80B0E12;
-    private static final int PILL_SOFT = 0x9F0B0E12;
-    private static final int TXT = 0xFFEDF2F5;
-    private static final int DIM = 0xFF848C96;
-    private static final int ACCENT = 0xFF8DC5FD;
-    private static final int GOOD = 0xFF7FD98B;
-    private static final int WARN = 0xFFE0B26B;
-    private static final int BAD = 0xFFE57C7C;
+    // ------------------------------------------------- palette: dark glass + thin white lines
+    private static final int PANEL  = 0xA8111216;
+    private static final int BORDER = 0x2EFFFFFF;
+    private static final int TXT    = 0xFFF0F1F3;
+    private static final int DIM    = 0xFF9BA1A8;
+    private static final int FAINT  = 0xFF5C636B;
+    private static final int LINE   = 0x22FFFFFF;
+    private static final int BAD    = 0xFFE07A7A;
 
     // TPS estimate from world-time updates
     private long lastWorldTime = -1, lastWorldStamp;
@@ -63,13 +68,44 @@ public final class HaloHudModule extends Module {
     private static final class Toast { String text; long born; Toast(String t, long b) { text = t; born = b; } }
     private final List<Toast> toasts = new ArrayList<>();
 
+    private final BooleanSetting hideVanilla = add(new BooleanSetting(
+            "hide-vanilla", "Скрывать ванильный HUD", "Убирает хотбар, сердечки, голод, полосу опыта и подсказки WASD — всё в панелях Halo", true));
+    private final BooleanSetting autoHideDupes = add(new BooleanSetting(
+            "auto-hide-dupes", "Прятать дубли HUD", "Выключать старые HUD-модули (FPS, координаты, зелья, таргет), когда Halo включён", true));
+    private boolean dupesCleaned;
+
+    public boolean hidesVanilla() { return hideVanilla.isOn(); }
+
     public HaloHudModule() {
-        super("halo_hud", "Halo HUD", "Инфо-пилюля, сервер и TPS, список модулей, персонал FunTime, зелья, кулдауны, таргет, коорды+bps.",
+        super("halo_hud", "Halo HUD", "Тёмный минимализм: статы слева, статистика+координаты справа, вейпоинт-чип снизу, тосты.",
                 Category.HUD, true);
         on(TickEvent.class, e -> tick());
         on(HudRenderEvent.class, this::render);
         on(ModuleToggleEvent.class, e -> toast(e.module().getName() + (e.enabled() ? " · включён" : " · выключен")));
         on(WorldJoinEvent.class, e -> toast("NEXUS HUD загружен"));
+    }
+
+    @Override
+    protected void onEnable() {
+        dupesCleaned = false;
+    }
+
+    /** Turns off the older HUD modules whose content Halo already covers. Retried on tick because the
+     *  module registry may not be fully live yet during start-up. */
+    @SuppressWarnings("unchecked")
+    private void cleanDuplicates() {
+        if (Nexus.modules() == null) return;
+        dupesCleaned = true;
+        if (!autoHideDupes.isOn()) return;
+        Class<? extends Module>[] dupes = new Class[]{
+                FpsHudModule.class, CoordinatesHudModule.class, PotionHudModule.class,
+                ArmorHudModule.class, TargetHudModule.class, WorldTimeHudModule.class, ModuleListHudModule.class};
+        boolean any = false;
+        for (Class<? extends Module> cls : dupes) {
+            Module m = Nexus.modules().get(cls);
+            if (m != null && m.isEnabled()) { m.setEnabled(false); any = true; }
+        }
+        if (any) toast("Старые дубли HUD выключены — можно вернуть в меню");
     }
 
     private void toast(String text) {
@@ -78,9 +114,9 @@ public final class HaloHudModule extends Module {
     }
 
     private void tick() {
+        if (!dupesCleaned) cleanDuplicates();
         if (mc.player == null) return;
-        // TPS: server syncs world time periodically; tick rate = advanced world ticks per real second
-        long now = Util_ms();
+        long now = System.currentTimeMillis();
         long wt = mc.world.getTime();
         if (lastWorldTime >= 0) {
             long dT = wt - lastWorldTime;
@@ -93,13 +129,10 @@ public final class HaloHudModule extends Module {
         } else {
             lastWorldTime = wt; lastWorldStamp = now;
         }
-        // blocks per second on ground plane
         double dx = mc.player.getX() - lastX, dz = mc.player.getZ() - lastZ;
         lastX = mc.player.getX(); lastZ = mc.player.getZ();
         bps = Math.max(0.0F, bps * 0.82F + (float) Math.hypot(dx, dz) * 20.0F * 0.18F);
     }
-
-    private static long Util_ms() { return System.currentTimeMillis(); }
 
     // ------------------------------------------------------------------------------------------------ render
 
@@ -107,42 +140,177 @@ public final class HaloHudModule extends Module {
         if (mc.player == null || mc.getDebugHud().shouldShowDebugHud()) return;
         DrawContext ctx = e.context;
         int sw = ctx.getScaledWindowWidth(), sh = ctx.getScaledWindowHeight();
-        float k = Math.min(1.0F, Math.min(sw / 800.0F, 1.0F)); // shrink a little on narrow windows
-        int w10 = 10;
-
-        float infoW = infoPill(ctx, w10, w10);
-        serverPill(ctx, w10 + 8, w10 + 22);
-        float modY = modList(ctx, w10, w10 + 48);
-        potions(ctx, sw, w10 + 24);
-        cooldowns(ctx, sw, w10 + 24 + potionsH + 8);
-        targetHud(ctx, sw, sh);
-        coordsPill(ctx, w10, sh - 16);
+        vitalsPanel(ctx, 8, 8);
+        statBlocks(ctx, sw, 8);
+        targetChip(ctx, sw, sh);
+        waypointChip(ctx, sw, sh);
+        techLine(ctx, 8, sh - 12);
         toasts(ctx, sw, sh);
     }
 
-    // ---------------------------------------------------------------- top-left
+    // ---------------------------------------------------------------- panel primitive
 
-    private int potionsH = 0;
+    private void panel(DrawContext ctx, float x, float y, float w, float h) {
+        Render2D.roundedRect(ctx, x, y, w, h, 5.0F, PANEL);
+        Render2D.roundedOutline(ctx, x, y, w, h, 5.0F, 0.6F, BORDER);
+    }
 
-    private float infoPill(DrawContext ctx, float x, float y) {
+    // ---------------------------------------------------------------- top-left: vitals list
+
+    private void vitalsPanel(DrawContext ctx, float x, float y) {
+        List<Row> rows = new ArrayList<>();
+        // vitals (icon + label + value)
+        float hp = mc.player.getHealth(), hpMax = mc.player.getMaxHealth();
+        rows.add(new Row(Icon.HEART, "Здоровье", fmt1(hp) + "/" + Math.round(hpMax), hp / hpMax < 0.3F ? BAD : TXT));
+        rows.add(new Row(Icon.HUNGER, "Сытость", mc.player.getHungerManager().getFoodLevel() + "/20", TXT));
+        int armor = mc.player.getArmor();
+        rows.add(new Row(Icon.SHIELD, "Броня", armor + "/20", armor <= 0 ? FAINT : TXT));
+        int xp = mc.player.experienceLevel;
+        if (xp > 0) rows.add(new Row(Icon.XP, "Уровень", String.valueOf(xp), TXT));
+        int air = mc.player.getAir(), airMax = mc.player.getMaxAir();
+        if (air < airMax) rows.add(new Row(Icon.BUBBLE, "Кислород", String.format(Locale.ROOT, "%.0f%%", air * 100.0F / airMax), BAD));
+        // effects
+        List<String[]> effects = new ArrayList<>();
+        try {
+            for (StatusEffectInstance inst : mc.player.getStatusEffects()) {
+                String nm = inst.getEffectType().value().getName().getString() + ampSuffix(inst.getAmplifier());
+                String dur = StatusEffectUtil.getDurationText(inst, 1.0F, 20).getString();
+                effects.add(new String[]{nm, dur});
+            }
+        } catch (Throwable ignored) { }
+        // cooldowns
+        List<String[]> cools = new ArrayList<>();
+        try {
+            ItemCooldownManager mgr = mc.player.getItemCooldownManager();
+            if (mgr != null) {
+                Map<Identifier, ?> map = ((ItemCooldownAccessor) mgr).nexus$entries();
+                int now = ((ItemCooldownAccessor) mgr).nexus$tick();
+                for (Map.Entry<Identifier, ?> en : map.entrySet()) {
+                    int left = ((ItemCooldownEntryAccessor) en.getValue()).nexus$end() - now;
+                    if (left <= 0) continue;
+                    String label = cooldownLabel(en.getKey().getPath());
+                    if (label != null) cools.add(new String[]{label, formatClock(left / 20.0F)});
+                }
+            }
+        } catch (Throwable ignored) { }
+
+        boolean hasExtra = !effects.isEmpty() || !cools.isEmpty();
+        float rowH = 10.5F, padX = 7.0F;
+        // width: icon(6)+gap ~ 16 + label + gap 12 + value + padX*2
+        float labelW = 0, valW = 0;
+        for (Row r : rows) { labelW = Math.max(labelW, TextRender.widthRaw(r.label)); valW = Math.max(valW, TextRender.widthRaw(r.value)); }
+        for (String[] r : effects) { labelW = Math.max(labelW, TextRender.widthRaw(r[0])); valW = Math.max(valW, TextRender.widthRaw(r[1])); }
+        for (String[] r : cools) { labelW = Math.max(labelW, TextRender.widthRaw(r[0])); valW = Math.max(valW, TextRender.widthRaw(r[1])); }
+        float w = padX + 6 + 6 + labelW + 14 + valW + padX;
+        int totalRows = rows.size() + (hasExtra ? effects.size() + cools.size() : 0);
+        float h = 8 + rows.size() * rowH + (hasExtra ? 5.5F + (effects.size() + cools.size()) * rowH : 0) + 4;
+
+        panel(ctx, x, y, w, h);
+        float cy = y + 6;
+        float tx = x + padX + 6 + 6;
+        float vx = x + w - padX;
+        for (Row r : rows) {
+            drawIcon(ctx, r.icon, x + padX + 3, cy + 5.25F, r.color == FAINT ? FAINT : TXT);
+            TextRender.draw(ctx, Text.literal(r.label), tx, cy + 1.5F, DIM, false);
+            TextRender.draw(ctx, Text.literal(r.value), vx - TextRender.widthRaw(r.value), cy + 1.5F, r.color, false);
+            cy += rowH;
+        }
+        if (hasExtra) {
+            cy += 1.5F;
+            Render2D.line(ctx, x + padX, cy, x + w - padX, cy, 0.6F, LINE);
+            cy += 4;
+            for (String[] r : effects) {
+                Render2D.circle(ctx, x + padX + 3, cy + 5.25F, 1.8F, TXT);
+                TextRender.draw(ctx, Text.literal(r[0]), tx, cy + 1.5F, TXT, false);
+                TextRender.draw(ctx, Text.literal(r[1]), vx - TextRender.widthRaw(r[1]), cy + 1.5F, DIM, false);
+                cy += rowH;
+            }
+            for (String[] r : cools) {
+                drawIcon(ctx, Icon.CLOCK, x + padX + 3, cy + 5.25F, FAINT);
+                TextRender.draw(ctx, Text.literal(r[0]), tx, cy + 1.5F, FAINT, false);
+                TextRender.draw(ctx, Text.literal(r[1]), vx - TextRender.widthRaw(r[1]), cy + 1.5F, DIM, false);
+                cy += rowH;
+            }
+        }
+    }
+
+    private enum Icon { HEART, HUNGER, SHIELD, XP, BUBBLE, CLOCK }
+    private record Row(Icon icon, String label, String value, int color) { }
+
+    /** Tiny thin-line white vector icons, ~5px, stroke look. */
+    private static void drawIcon(DrawContext ctx, Icon ic, float cx, float cy, int color) {
+        switch (ic) {
+            case HEART -> { // two small circles + a tiny triangle tip
+                Render2D.circle(ctx, cx - 1.3F, cy - 0.8F, 1.5F, color);
+                Render2D.circle(ctx, cx + 1.3F, cy - 0.8F, 1.5F, color);
+                Render2D.line(ctx, cx - 2.4F, cy + 0.1F, cx, cy + 2.6F, 0.8F, color);
+                Render2D.line(ctx, cx + 2.4F, cy + 0.1F, cx, cy + 2.6F, 0.8F, color);
+            }
+            case HUNGER -> { // drumstick: circle + bone hint
+                Render2D.circle(ctx, cx - 0.8F, cy - 0.8F, 1.8F, color);
+                Render2D.line(ctx, cx - 0.2F, cy + 0.2F, cx + 2.0F, cy + 2.4F, 0.9F, color);
+            }
+            case SHIELD -> { // shield outline stylization: top line + two slopes
+                Render2D.line(ctx, cx - 2.3F, cy - 2.0F, cx + 2.3F, cy - 2.0F, 0.8F, color);
+                Render2D.line(ctx, cx - 2.3F, cy - 2.0F, cx, cy + 2.6F, 0.8F, color);
+                Render2D.line(ctx, cx + 2.3F, cy - 2.0F, cx, cy + 2.6F, 0.8F, color);
+            }
+            case XP -> { // star-ish: plus + diagonals dot
+                Render2D.line(ctx, cx - 2.0F, cy, cx + 2.0F, cy, 0.8F, color);
+                Render2D.line(ctx, cx, cy - 2.0F, cx, cy + 2.0F, 0.8F, color);
+            }
+            case BUBBLE -> Render2D.ring(ctx, cx, cy, 2.0F, 0.8F, color);
+            case CLOCK -> { // clock: ring + hands
+                Render2D.ring(ctx, cx, cy, 2.1F, 0.7F, color);
+                Render2D.line(ctx, cx, cy, cx, cy - 1.4F, 0.7F, color);
+                Render2D.line(ctx, cx, cy, cx + 1.0F, cy + 0.5F, 0.7F, color);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- top-right: stat blocks
+
+    private void statBlocks(DrawContext ctx, int sw, float y) {
+        float bh = 16.0F, gap = 3.0F, cy = y;
+        // block 1: nick · fps · ping · clock
         String name = mc.getSession().getUsername();
         String fps = mc.getCurrentFps() + "fps";
         int lat = latency();
         String ping = (lat >= 0 ? lat : "—") + "ms";
         String time = LocalTime.now().format(CLOCK);
-        int nw = TextRender.widthRaw(name);
-        int txtW = nw + 6 + TextRender.widthRaw(fps) + 12 + TextRender.widthRaw(ping) + 12 + TextRender.widthRaw(time);
-        float hgt = 17.0F, av = 11.0F;
-        float w = av + 8 + txtW + 10;
-        Render2D.roundedRect(ctx, x, y, w, hgt, 6.5F, PILL);
-        boolean face = drawHead(ctx, x + 4, y + (hgt - av) / 2, av, null);
-        if (!face) Render2D.roundedRect(ctx, x + 4, y + (hgt - av) / 2, av, av, 3.0F, ACCENT);
-        float tx = x + 4 + av + 5;
-        TextRender.draw(ctx, Text.literal(name).setStyle(net.minecraft.text.Style.EMPTY.withBold(true)), tx, y + 5, TXT, false);
-        tx += nw + 8;
-        TextRender.draw(ctx, Text.literal(fps), tx, y + 5, DIM, false); tx += TextRender.widthRaw(fps) + 12;
-        TextRender.draw(ctx, Text.literal(ping), tx, y + 5, lat >= 0 && lat < 120 ? GOOD : WARN, false); tx += TextRender.widthRaw(ping) + 12;
-        TextRender.draw(ctx, Text.literal(time), tx, y + 5, DIM, false);
+        float w1 = block(ctx, sw, cy, new String[]{name, fps, ping, time}, new int[]{TXT, DIM, lat >= 0 && lat < 120 ? DIM : BAD, DIM});
+        cy += bh + gap;
+        // block 2: server + tps (servers only)
+        ServerInfo cur = mc.getCurrentServerEntry();
+        if (cur != null && cur.address != null) {
+            String tpsTxt = tps >= 0 ? String.format(Locale.ROOT, "%.1ftps", tps) : "···";
+            block(ctx, sw, cy, new String[]{cur.address, tpsTxt}, new int[]{DIM, TXT});
+            cy += bh + gap;
+        }
+        // block 3: coords + bps
+        String coords = String.format(Locale.ROOT, "%.0f %.0f %.0f", mc.player.getX(), mc.player.getY(), mc.player.getZ());
+        String spd = String.format(Locale.ROOT, "%.1fbps", bps);
+        block(ctx, sw, cy, new String[]{coords, spd}, new int[]{TXT, DIM});
+    }
+
+    /** One right-aligned dark block: parts separated by thin middots. Returns width. */
+    private float block(DrawContext ctx, int sw, float y, String[] parts, int[] colors) {
+        float innerW = 0;
+        String dot = "·";
+        int dotW = TextRender.widthRaw(dot);
+        for (int i = 0; i < parts.length; i++) innerW += TextRender.widthRaw(parts[i]) + (i > 0 ? dotW + 8.0F : 0);
+        float w = innerW + 14.0F;
+        float x = sw - 8 - w;
+        panel(ctx, x, y, w, 16.0F);
+        float tx = x + 7.0F;
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                TextRender.draw(ctx, Text.literal(dot), tx, y + 5, FAINT, false);
+                tx += dotW + 8.0F;
+            }
+            TextRender.draw(ctx, Text.literal(parts[i]), tx, y + 5, colors[i], false);
+            tx += TextRender.widthRaw(parts[i]);
+        }
         return w;
     }
 
@@ -156,197 +324,87 @@ public final class HaloHudModule extends Module {
         return -1;
     }
 
-    private float serverPill(DrawContext ctx, float x, float y) {
-        ServerInfo cur = mc.getCurrentServerEntry();
-        String addr = cur != null ? cur.address : null;
-        if (addr == null) return 0;
-        String tpsTxt = tps >= 0 ? String.format(Locale.ROOT, "%.1ftps", tps) : "···";
-        int aw = TextRender.widthRaw(addr), tw = TextRender.widthRaw(tpsTxt);
-        float w = aw + 10 + tw + 14;
-        Render2D.roundedRect(ctx, x, y, w, 15.0F, 6.0F, PILL_SOFT);
-        Render2D.circle(ctx, x + 8, y + 7.5F, 2.2F, GOOD);
-        TextRender.draw(ctx, Text.literal(addr), x + 14, y + 4.5F, DIM, false);
-        TextRender.draw(ctx, Text.literal(tpsTxt), x + 14 + aw + 10, y + 4.5F, TXT, false);
-        return w;
-    }
+    // ---------------------------------------------------------------- bottom-centre: nearest waypoint
 
-    // ---------------------------------------------------------------- left column
-
-    private float modList(DrawContext ctx, float x, float y) {
-        List<Module> list = new ArrayList<>();
-        for (Module m : Nexus.modules().all()) {
-            if (m.isEnabled() && m != this && m.getCategory() != Category.HUD) list.add(m);
-        }
-        float hgt = 14.0F, cy = y;
-        for (Module m : list) {
-            String name = m.getName();
-            String mode = m.getCategory().name().toLowerCase(Locale.ROOT).substring(0, 1).toUpperCase(Locale.ROOT)
-                    + m.getCategory().name().toLowerCase(Locale.ROOT).substring(1);
-            int nw = TextRender.widthRaw(name), mw = TextRender.widthRaw(mode);
-            float w = 16 + nw + 6 + mw + 8;
-            Render2D.roundedRect(ctx, x, cy, w, hgt, 5.5F, PILL_SOFT);
-            Render2D.circle(ctx, x + 6.5F, cy + hgt / 2, 1.8F, ACCENT);
-            TextRender.draw(ctx, Text.literal(name), x + 12, cy + 4, TXT, false);
-            TextRender.draw(ctx, Text.literal(mode), x + 12 + nw + 6, cy + 4, DIM, false);
-            cy += hgt + 3.0F;
-        }
-        return cy;
-    }
-
-    // ---------------------------------------------------------------- top-right
-
-    private void potions(DrawContext ctx, int sw, float y) {
-        List<StatusEffectInstance> fx = new ArrayList<>();
+    private void waypointChip(DrawContext ctx, int sw, int sh) {
+        Waypoint nearest = null;
+        double best = Double.MAX_VALUE;
         try {
-            for (StatusEffectInstance inst : mc.player.getStatusEffects()) fx.add(inst);
-        } catch (Throwable ignored) { }
-        potionsH = 0;
-        if (fx.isEmpty()) return;
-        String head = "Зелья";
-        int hw = TextRender.widthRaw(head);
-        float wMax = hw + 60;
-        for (StatusEffectInstance inst : fx) {
-            String nm = inst.getEffectType().value().getName().getString() + ampSuffix(inst.getAmplifier());
-            wMax = Math.max(wMax, 14 + TextRender.widthRaw(nm) + 20 + 30.0F);
-        }
-        float hgt = 13.0F;
-        float x = sw - 8 - wMax;
-        potionsH = Math.round(hgt + fx.size() * (hgt + 2) + 4);
-        Render2D.roundedRect(ctx, x, y, wMax, potionsH, 6.0F, PILL);
-        TextRender.draw(ctx, Text.literal(head).setStyle(net.minecraft.text.Style.EMPTY.withBold(true)), x + 8, y + 4, TXT, false);
-        TextRender.draw(ctx, Text.literal("Время"), x + wMax - 8 - TextRender.widthRaw("Время"), y + 4, DIM, false);
-        float cy = y + hgt + 1;
-        for (StatusEffectInstance inst : fx) {
-            int col = inst.getEffectType().value().getColor();
-            Render2D.circle(ctx, x + 10, cy + 4.5F, 2.4F, 0xFF000000 | (col & 0xFFFFFF));
-            String nm = inst.getEffectType().value().getName().getString() + ampSuffix(inst.getAmplifier());
-            String dur = StatusEffectUtil.getDurationText(inst, 1.0F, 20).getString();
-            boolean expiring = inst.getDuration() <= 100;
-            TextRender.draw(ctx, Text.literal(nm), x + 16, cy, expiring ? DIM : TXT, false);
-            TextRender.draw(ctx, Text.literal(dur), x + wMax - 8 - TextRender.widthRaw(dur), cy, expiring ? DIM : TXT, false);
-            cy += hgt + 2;
-        }
-    }
-
-    private static String ampSuffix(int amp) {
-        return amp <= 0 ? "" : " " + (amp + 1);
-    }
-
-    private void cooldowns(DrawContext ctx, int sw, float y0) {
-        float y = y0;
-        List<String[]> rows = new ArrayList<>();
-        try {
-            ItemCooldownManager mgr = mc.player.getItemCooldownManager();
-            if (mgr != null) {
-                Map<Identifier, ?> map = ((ItemCooldownAccessor) mgr).nexus$entries();
-                int now = ((ItemCooldownAccessor) mgr).nexus$tick();
-                for (Map.Entry<Identifier, ?> en : map.entrySet()) {
-                    int left = ((dev.nexus.client.mixin.ItemCooldownEntryAccessor) en.getValue()).nexus$end() - now;
-                    if (left <= 0) continue;
-                    String id = en.getKey().getPath();
-                    String label = cooldownLabel(id);
-                    if (label == null) continue;
-                    rows.add(new String[]{label, id, formatClock(left / 20.0F)});
-                }
+            String dim = mc.world.getRegistryKey().getValue().toString();
+            List<Waypoint> list = WaypointStore.INSTANCE.inDimension(dim);
+            for (Waypoint wp : list) {
+                double d = wp.distanceTo(mc.player.getX(), mc.player.getZ());
+                if (d < best) { best = d; nearest = wp; }
             }
         } catch (Throwable ignored) { }
-        if (rows.isEmpty()) return;
-        String head = "Cooldowns";
-        float wMax = TextRender.widthRaw(head) + 62;
-        for (String[] r : rows) wMax = Math.max(wMax, 14 + TextRender.widthRaw(r[0]) + 20 + TextRender.widthRaw(r[2]) + 14.0F);
-        float hgt = 13.0F;
-        float x = sw - 8 - wMax;
-        Render2D.roundedRect(ctx, x, y, wMax, hgt + rows.size() * (hgt + 2) + 4, 6.0F, PILL);
-        TextRender.draw(ctx, Text.literal(head).setStyle(net.minecraft.text.Style.EMPTY.withBold(true)), x + 8, y + 4, TXT, false);
-        TextRender.draw(ctx, Text.literal("Time"), x + wMax - 8 - TextRender.widthRaw("Time"), y + 4, DIM, false);
-        float cy = y + hgt + 1;
-        for (String[] r : rows) {
-            Render2D.circle(ctx, x + 10, cy + 4.5F, 2.4F, cooldownColor(r[1]));
-            String leftTxt = r[2].startsWith("0:0") ? r[2] : r[2];
-            boolean hot = !r[2].equals("0:00");
-            TextRender.draw(ctx, Text.literal(r[0]), x + 16, cy, hot ? TXT : DIM, false);
-            TextRender.draw(ctx, Text.literal(leftTxt), x + wMax - 8 - TextRender.widthRaw(leftTxt), cy, hot ? TXT : DIM, false);
-            cy += hgt + 2;
+        if (nearest == null) return;
+        String dist = best < 10.0 ? String.format(Locale.ROOT, "%.1fm", best) : String.format(Locale.ROOT, "%.0fm", (long) Math.round(best));
+        String name = nearest.name;
+        int nw = TextRender.widthRaw(name), dw = TextRender.widthRaw(dist);
+        float w = 30 + nw + 10 + dw;
+        float x = sw / 2.0F - w / 2.0F;
+        float y = sh - 52;
+        panel(ctx, x, y, w, 20.0F);
+        // marker icon: diamond of thin lines
+        float icx = x + 11, icy = y + 10;
+        Render2D.line(ctx, icx, icy - 3.2F, icx + 2.6F, icy, 0.9F, TXT);
+        Render2D.line(ctx, icx + 2.6F, icy, icx, icy + 3.2F, 0.9F, TXT);
+        Render2D.line(ctx, icx, icy + 3.2F, icx - 2.6F, icy, 0.9F, TXT);
+        Render2D.line(ctx, icx - 2.6F, icy, icx, icy - 3.2F, 0.9F, TXT);
+        TextRender.draw(ctx, Text.literal(name), x + 19, y + 6.5F, TXT, false);
+        TextRender.draw(ctx, Text.literal(dist), x + 19 + nw + 10, y + 6.5F, DIM, false);
+    }
+
+    // ---------------------------------------------------------------- bottom-left: technical line
+
+    private void techLine(DrawContext ctx, float x, float y) {
+        String ver = clientVersion();
+        String line = "Nexus " + ver + " · mc 1.21.11 · " + mc.getCurrentFps() + "fps";
+        TextRender.draw(ctx, Text.literal(line), x, y, FAINT, false);
+    }
+
+    private static String clientVersion() {
+        try {
+            return net.fabricmc.loader.api.FabricLoader.getInstance()
+                    .getModContainer("nexus").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("1.0.14");
+        } catch (Throwable t) {
+            return "1.0.14";
         }
     }
 
-    private static String cooldownLabel(String path) {
-        if (path.equals("ender_pearl")) return "Ender Pearl";
-        if (path.equals("golden_apple") || path.equals("enchanted_golden_apple")) return "Golden Apple";
-        if (path.equals("chorus_fruit")) return "Chorus Fruit";
-        if (path.equals("totem_of_undying")) return "Totem";
-        return null;
-    }
+    // ---------------------------------------------------------------- centre: target chip
 
-    private static int cooldownColor(String path) {
-        return switch (path) {
-            case "ender_pearl" -> 0xFF3EAA9C;
-            case "golden_apple", "enchanted_golden_apple" -> 0xFFE0C23E;
-            case "chorus_fruit" -> 0xFFB98FED;
-            default -> ACCENT;
-        };
-    }
-
-    private static String formatClock(double seconds) {
-        int s = (int) Math.ceil(seconds);
-        return "0:" + (s < 10 ? "0" + s : s);
-    }
-
-    // ---------------------------------------------------------------- target + crosshair chips
-
-    private void targetHud(DrawContext ctx, int sw, int sh) {
+    private void targetChip(DrawContext ctx, int sw, int sh) {
         LivingEntity ent = mc.targetedEntity instanceof LivingEntity le ? le : null;
         if (ent == null || ent.isInvisible()) return;
         String name = ent.getName().getString();
         float hp = Math.max(0.0F, ent.getHealth());
         float max = Math.max(1.0F, ent.getMaxHealth());
-        // chips above: armor + totem-in-hands count
-        int armor = ent.getArmor();
-        int totems = 0;
+        String right;
         if (ent instanceof PlayerEntity pe) {
+            int totems = 0;
             if (pe.getOffHandStack().isOf(Items.TOTEM_OF_UNDYING)) totems++;
             if (pe.getMainHandStack().isOf(Items.TOTEM_OF_UNDYING)) totems++;
+            right = String.format(Locale.ROOT, "%.0fhp · ⛨%d", hp, pe.getArmor()) + (totems > 0 ? " · " + totems : "");
+        } else {
+            right = String.format(Locale.ROOT, "%.0fhp", hp);
         }
-        int nw = TextRender.widthRaw(name);
-        String hpTxt = String.format(Locale.ROOT, "%.1fhp", hp);
-        int hw = TextRender.widthRaw(hpTxt);
-        float pw = Math.max(110.0F, 24 + nw + 18 + hw + 8);
+        int nw = TextRender.widthRaw(name), rw = TextRender.widthRaw(right);
+        float pw = 24 + nw + 16 + rw;
         float px = sw / 2.0F - pw / 2.0F;
-        float py = sh * 0.62F;
-        // chips row
-        chipIcon(ctx, sw / 2.0F, py - 12.0F, armor, totems);
-
-        Render2D.roundedRect(ctx, px, py, pw, 20.0F, 7.0F, PILL);
-        // head for players, generic icon otherwise
+        float py = sh * 0.60F;
+        panel(ctx, px, py, pw, 20.0F);
         if (ent instanceof PlayerEntity pe) {
             boolean face = drawHeadOf(ctx, px + 4, py + 4, 12, pe.getGameProfile());
-            if (!face) Render2D.roundedRect(ctx, px + 4, py + 4, 12, 12, 3.0F, 0xFF2B323C);
+            if (!face) Render2D.roundedRect(ctx, px + 4, py + 4, 12, 12, 3.0F, 0xFF22262C);
         } else {
-            Render2D.roundedRect(ctx, px + 4, py + 4, 12, 12, 3.0F, 0xFF2B323C);
+            Render2D.roundedRect(ctx, px + 4, py + 4, 12, 12, 3.0F, 0xFF22262C);
         }
-        float barW = pw - 24 - 8;
-        TextRender.draw(ctx, Text.literal(name).setStyle(net.minecraft.text.Style.EMPTY.withBold(true)), px + 20, py + 3.5F, TXT, false);
-        TextRender.draw(ctx, Text.literal(hpTxt), px + pw - 4 - hw, py + 3.5F, TXT, false);
+        TextRender.draw(ctx, Text.literal(name), px + 20, py + 3.5F, TXT, false);
+        TextRender.draw(ctx, Text.literal(right), px + 20 + nw + 16, py + 3.5F, DIM, false);
         float frac = Math.max(0.0F, Math.min(1.0F, hp / max));
-        Render2D.roundedRect(ctx, px + 20, py + 13.0F, barW, 3.0F, 1.5F, 0xFF232830);
-        Render2D.roundedRect(ctx, px + 20, py + 13.0F, barW * frac, 3.0F, 1.5F, hpCol(frac));
-    }
-
-    private void chipIcon(DrawContext ctx, float cx, float cy, int armor, int totems) {
-        int cnt = 1 + (totems > 0 ? 1 : 0);
-        float w = cnt * 14 + 4;
-        float x = cx - w / 2.0F;
-        Render2D.roundedRect(ctx, x, cy - 2, w, 12, 5.0F, PILL_SOFT);
-        TextRender.draw(ctx, Text.literal("⛨" + armor), x + 4, cy + 1, DIM, false);
-        if (totems > 0) TextRender.draw(ctx, Text.literal("☻" + totems), x + 18, cy + 1, WARN, false);
-    }
-
-    private static int hpCol(float frac) {
-        return frac > 0.55F ? GOOD : frac > 0.25F ? WARN : BAD;
-    }
-
-    private boolean drawHead(DrawContext ctx, float x, float y, float size, java.util.UUID ignore) {
-        return drawHeadOf(ctx, x, y, size, mc.getGameProfile());
+        Render2D.roundedRect(ctx, px + 20, py + 14.5F, pw - 28, 2.0F, 1.0F, 0x55FFFFFF);
+        Render2D.roundedRect(ctx, px + 20, py + 14.5F, (pw - 28) * frac, 2.0F, 1.0F, frac < 0.3F ? BAD : 0xDDFFFFFF);
     }
 
     private boolean drawHeadOf(DrawContext ctx, float x, float y, float size, com.mojang.authlib.GameProfile profile) {
@@ -361,36 +419,48 @@ public final class HaloHudModule extends Module {
         return false;
     }
 
-    // ---------------------------------------------------------------- bottom rows
-
-    private void coordsPill(DrawContext ctx, float x, float y) {
-        if (mc.player == null) return;
-        String s = Math.round(mc.player.getX()) + "x · " + Math.round(mc.player.getY()) + "y · "
-                + Math.round(mc.player.getZ()) + "z";
-        String v = String.format(Locale.ROOT, "%.1fbps", bps);
-        float w = 12 + TextRender.widthRaw(s) + 10 + TextRender.widthRaw(v) + 4;
-        Render2D.roundedRect(ctx, x, y, w, 14.0F, 6.0F, PILL_SOFT);
-        Render2D.rect(ctx, x + 5, y + 4, 4, 6, ACCENT);
-        TextRender.draw(ctx, Text.literal(s), x + 13, y + 4.5F, DIM, false);
-        TextRender.draw(ctx, Text.literal(v), x + 13 + TextRender.widthRaw(s) + 10, y + 4.5F, TXT, false);
-    }
+    // ---------------------------------------------------------------- bottom-right: toasts
 
     private void toasts(DrawContext ctx, int sw, int sh) {
-        long now = Util_ms();
-        float y = sh - 22.0F;
+        long now = System.currentTimeMillis();
+        toasts.removeIf(t -> now - t.born > 4200);
+        float cy = sh - 30;
         for (int i = toasts.size() - 1; i >= 0; i--) {
             Toast t = toasts.get(i);
             long age = now - t.born;
-            if (age > 3800) { toasts.remove(i); continue; }
-            float a = age < 180 ? age / 180.0F : age > 3400 ? 1.0F - (age - 3400) / 400.0F : 1.0F;
-            Render2D.pushAlpha(a);
-            int tw = TextRender.widthRaw(t.text);
-            float w = tw + 22;
-            Render2D.roundedRect(ctx, sw - 8 - w, y, w, 14.0F, 6.0F, PILL);
-            Render2D.circle(ctx, sw - 8 - w + 8, y + 7, 2.2F, ACCENT);
-            TextRender.draw(ctx, Text.literal(t.text), sw - 8 - w + 14, y + 4.5F, TXT, false);
-            Render2D.popAlpha();
-            y -= 17.0F;
+            float alpha = age > 3600 ? Math.max(0.0F, 1.0F - (age - 3600) / 600.0F) : 1.0F;
+            int a = Math.round(alpha * 0xA8) << 24;
+            int ba = Math.round(alpha * 0x2E) << 24;
+            int ta = Math.round(alpha * 0xFF) << 24;
+            int w = TextRender.widthRaw(t.text) + 16;
+            float x = sw - 8 - w;
+            Render2D.roundedRect(ctx, x, cy, w, 16.0F, 5.0F, a | 0x00111216);
+            Render2D.roundedOutline(ctx, x, cy, w, 16.0F, 5.0F, 0.6F, ba | 0x00FFFFFF);
+            TextRender.draw(ctx, Text.literal(t.text), x + 8, cy + 5, ta | 0x00F0F1F3, false);
+            cy -= 19.0F;
         }
+    }
+
+    // ---------------------------------------------------------------- helpers
+
+    private static String fmt1(float v) {
+        return (v % 1 == 0) ? String.valueOf((long) v) : String.format(Locale.ROOT, "%.1f", v);
+    }
+
+    private static String ampSuffix(int amp) {
+        return amp <= 0 ? "" : " " + (amp + 1);
+    }
+
+    private static String cooldownLabel(String path) {
+        if (path.equals("ender_pearl")) return "Ender Pearl";
+        if (path.equals("golden_apple") || path.equals("enchanted_golden_apple")) return "Golden Apple";
+        if (path.equals("chorus_fruit")) return "Chorus Fruit";
+        if (path.equals("totem_of_undying")) return "Totem";
+        return null;
+    }
+
+    private static String formatClock(double seconds) {
+        int s = (int) Math.ceil(seconds);
+        return "0:" + (s < 10 ? "0" + s : s);
     }
 }

@@ -1,6 +1,7 @@
 package dev.nexus.client.mixin;
 
 import dev.nexus.client.Nexus;
+import dev.nexus.client.util.HaloVisibility;
 import dev.nexus.client.module.impl.hud.PotionHudModule;
 import dev.nexus.client.module.impl.visuals.CustomCrosshairModule;
 import net.minecraft.client.MinecraftClient;
@@ -44,5 +45,20 @@ public abstract class InGameHudMixin {
         if (Nexus.modules() == null) return;
         PotionHudModule potions = Nexus.modules().get(PotionHudModule.class);
         if (potions != null && potions.isEnabled() && potions.hidesVanilla()) ci.cancel();
+    }
+
+    @Inject(method = "renderHotbar", at = @At("HEAD"), cancellable = true)
+    private void nexus$haloHotbar(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        if (HaloVisibility.hidesVanilla()) ci.cancel();
+    }
+
+    @Inject(method = "renderStatusBars", at = @At("HEAD"), cancellable = true)
+    private void nexus$haloStatusBars(DrawContext context, CallbackInfo ci) {
+        if (HaloVisibility.hidesVanilla()) ci.cancel();
+    }
+
+    @Inject(method = "renderHeldItemTooltip", at = @At("HEAD"), cancellable = true)
+    private void nexus$haloHeldItemTooltip(DrawContext context, CallbackInfo ci) {
+        if (HaloVisibility.hidesVanilla()) ci.cancel();
     }
 }

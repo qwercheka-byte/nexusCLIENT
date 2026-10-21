@@ -12,6 +12,7 @@
     "IconsMixin",
     "InGameHudMixin",
     "ItemCooldownAccessor",
+    "HudBarHidingMixin",
     "ItemCooldownEntryAccessor",
     "InactivityFpsLimiterMixin",
     "KeyboardMixin",
@@ -26,6 +27,7 @@
     "SplashTextRendererAccessor",
     "TabButtonWidgetMixin",
     "TextFieldWidgetMixin",
+    "ToastManagerMixin",
     "TitleScreenMixin",
     "WindowMixin"
   ],
