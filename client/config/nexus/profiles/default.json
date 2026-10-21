@@ -1,0 +1,245 @@
+{
+  "schema": 2,
+  "name": "default",
+  "modified": 1792475171716,
+  "modules": {
+    "fullbright": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "brightness": 10.0,
+        "smooth": true
+      }
+    },
+    "custom_crosshair": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "style": "Cross",
+        "length": 4.5,
+        "thickness": 1.0,
+        "gap": 2.0,
+        "color": "#FFFFFFFF",
+        "outline": true,
+        "outline_color": "#B0000000",
+        "outline_width": 0.5,
+        "dynamic": false,
+        "target_highlight": false,
+        "target_color": "#FFFF5A5A",
+        "attack_indicator": true
+      }
+    },
+    "custom_nametags": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "background": true,
+        "background_color": "#66000000",
+        "health": true,
+        "health_format": "Hearts",
+        "shadow": false
+      }
+    },
+    "armor_hud": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "layout": "Vertical",
+        "slots": [
+          "Helmet",
+          "Chestplate",
+          "Leggings",
+          "Boots",
+          "Main hand",
+          "Off hand"
+        ],
+        "durability": "Percent",
+        "colorize": true
+      },
+      "hud": {
+        "ax": 0,
+        "ay": 1,
+        "ox": 4.0,
+        "oy": 0.0
+      }
+    },
+    "potion_hud": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "icons": true,
+        "level": true,
+        "compact": false,
+        "sort": "Duration",
+        "hide_vanilla": true,
+        "blink": true
+      },
+      "hud": {
+        "ax": 2,
+        "ay": 1,
+        "ox": 4.0,
+        "oy": 0.0
+      }
+    },
+    "coordinates_hud": {
+      "enabled": true,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "format": "Inline",
+        "template": "X {x}  Y {y}  Z {z}",
+        "decimals": 0.0,
+        "direction": true,
+        "nether": true,
+        "biome": false
+      },
+      "hud": {
+        "ax": 0,
+        "ay": 0,
+        "ox": 4.0,
+        "oy": 4.0
+      }
+    },
+    "fps_counter": {
+      "enabled": true,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "label": true,
+        "frame_time": false,
+        "colorize": true
+      },
+      "hud": {
+        "ax": 0,
+        "ay": 0,
+        "ox": 4.0,
+        "oy": 50.0
+      }
+    },
+    "keystrokes": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "mouse": true,
+        "cps": true,
+        "space": true,
+        "key_size": 20.0,
+        "gap": 2.0,
+        "press_color_mode": "Accent",
+        "press_color": "#FFFFFFFF"
+      },
+      "hud": {
+        "ax": 0,
+        "ay": 2,
+        "ox": 4.0,
+        "oy": 4.0
+      }
+    },
+    "target_hud": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "source": "Both",
+        "timeout": 4.0,
+        "head": true,
+        "distance": true,
+        "armor": true
+      },
+      "hud": {
+        "ax": 1,
+        "ay": 1,
+        "ox": 0.0,
+        "oy": 40.0
+      }
+    },
+    "world_time_hud": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "clock": "24h",
+        "day": true,
+        "icon": true,
+        "weather": false,
+        "moon": false,
+        "real_time": false
+      },
+      "hud": {
+        "ax": 2,
+        "ay": 2,
+        "ox": 4.0,
+        "oy": 4.0
+      }
+    },
+    "module_list": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "scale": 1.0,
+        "opacity": 1.0,
+        "background": true,
+        "hide_hud": true,
+        "sort": "Width",
+        "accent_bar": true,
+        "lowercase": false
+      },
+      "hud": {
+        "ax": 2,
+        "ay": 0,
+        "ox": 4.0,
+        "oy": 4.0
+      }
+    },
+    "notifications": {
+      "enabled": true,
+      "key": -1,
+      "settings": {
+        "position": "Bottom Right",
+        "duration": 2.5,
+        "toggles": true
+      }
+    },
+    "zoom": {
+      "enabled": true,
+      "key": -1,
+      "settings": {
+        "zoom_key": 67,
+        "factor": 4.0,
+        "smooth": true,
+        "scroll": true,
+        "cinematic": false
+      }
+    },
+    "auto_sprint": {
+      "enabled": false,
+      "key": -1,
+      "settings": {}
+    },
+    "unfocused_fps": {
+      "enabled": false,
+      "key": -1,
+      "settings": {
+        "limit": 15.0
+      }
+    }
+  }
+}

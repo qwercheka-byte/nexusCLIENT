@@ -2,14 +2,7 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "nexus:inter_latin.ttf",
-      "shift": [0, 0],
-      "size": 20,
-      "oversample": 2
-    },
-    {
-      "type": "ttf",
-      "file": "nexus:inter_cyrillic.ttf",
+      "file": "nexus:onest.ttf",
       "shift": [0, 0],
       "size": 20,
       "oversample": 2

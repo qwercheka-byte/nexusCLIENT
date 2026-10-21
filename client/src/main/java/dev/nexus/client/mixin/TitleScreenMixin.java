@@ -151,7 +151,7 @@ public abstract class TitleScreenMixin extends Screen {
             }
             this.nexus$decor.overlay(ctx, this.width, this.height, photos);
             boolean splash = !this.client.options.getHideSplashTexts().getValue();
-            dev.nexus.client.ui.vanilla.SkyTitle.INSTANCE.draw(ctx, this.client, mouseX, mouseY, System.currentTimeMillis());
+            dev.nexus.client.ui.vanilla.SkyTitle.INSTANCE.draw(ctx, this.client, this.width, this.height, mouseX, mouseY);
 
             for (int i = 0; i < this.nexus$animated.size(); i++) {
                 ClickableWidget w = this.nexus$animated.get(i);

@@ -18,12 +18,15 @@ import dev.nexus.client.module.impl.hud.WorldTimeHudModule;
 import dev.nexus.client.module.impl.interfaces.NotificationsModule;
 import dev.nexus.client.module.impl.performance.UnfocusedFpsModule;
 import dev.nexus.client.module.impl.utility.AutoSprintModule;
+import dev.nexus.client.module.impl.hud.HaloHudModule;
+import dev.nexus.client.module.impl.utility.WaypointsModule;
 import dev.nexus.client.module.impl.utility.ZoomModule;
 import dev.nexus.client.module.impl.visuals.CustomCrosshairModule;
 import dev.nexus.client.module.impl.visuals.CustomNametagsModule;
 import dev.nexus.client.module.impl.visuals.FullbrightModule;
 import dev.nexus.client.ui.NexusScreen;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import dev.nexus.client.ui.vanilla.MenuBackground;
@@ -46,6 +49,8 @@ public final class NexusClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // /wp chat commands, consumed locally (never reaches the server)
+        ClientSendMessageEvents.ALLOW_COMMAND.register(msg -> !WaypointsModule.handleCommand(msg));
         long start = System.nanoTime();
         Nexus.init();
         registerModules(Nexus.modules());
@@ -121,6 +126,8 @@ public final class NexusClient implements ClientModInitializer {
         // Utility
         m.register(new ZoomModule());
         m.register(new AutoSprintModule());
+        m.register(new WaypointsModule());
+        m.register(new HaloHudModule());
         // Performance
         m.register(new UnfocusedFpsModule());
     }

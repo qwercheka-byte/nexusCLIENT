@@ -62,25 +62,7 @@ public final class TitleDecor {
         } else {
             Render2D.gradientV(ctx, 0.0F, 0.0F, w, h, -1945630451, -804648176);
         }
-        float gx = w * (0.3F + 0.05F * (float)Math.sin(time * 0.21F));
-        float gy = h * (0.3F + 0.04F * (float)Math.cos(time * 0.17F));
-        Render2D.shadow(ctx, gx - 30.0F, gy - 30.0F, 60.0F, 60.0F, 30.0F, Math.max(w, h) * 0.32F, ColorUtil.withAlpha(Theme.accent(), 30));
-        float cx = w * (0.72F + 0.05F * (float)Math.cos(time * 0.19F));
-        float cy = h * (0.68F + 0.04F * (float)Math.sin(time * 0.23F));
-        Render2D.shadow(ctx, cx - 30.0F, cy - 30.0F, 60.0F, 60.0F, 30.0F, Math.max(w, h) * 0.28F, ColorUtil.withAlpha(-13058568, 20));
-
-        for (int i = 0; i < 46; i++) {
-            float y = PY[i] - time * PV[i];
-            y -= (float)Math.floor(y);
-            float x = PX[i] + 0.015F * (float)Math.sin(time * 0.6F + PP[i]);
-            float twinkle = 0.45F + 0.55F * (float)Math.sin(time * 1.3F + PP[i]) * 0.5F + 0.275F;
-            float edge = Math.min(1.0F, Math.min(y, 1.0F - y) * 6.0F);
-            int base = i % 3 == 0 ? -13058568 : Theme.accentBright();
-            int a = (int)(150.0F * twinkle * edge);
-            if (a > 2) {
-                Render2D.circle(ctx, x * w, y * h, PS[i], ColorUtil.withAlpha(base, a));
-            }
-        }
+        // clean title: no glow blobs, no floating particles (Lunaris-style sharp menu)
 
         Render2D.gradientV(ctx, 0.0F, 0.0F, w, h * 0.22F, 1879048192, 0);
         Render2D.gradientV(ctx, 0.0F, h * 0.78F, w, h * 0.22F, 0, -1879048192);

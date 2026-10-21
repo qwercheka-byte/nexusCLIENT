@@ -1,0 +1,28 @@
+{
+  "schema": 2,
+  "activeProfile": "default",
+  "client": {
+    "menu_key": 344,
+    "pause_in_menu": false,
+    "tooltips": true,
+    "accent_preset": "Violet",
+    "custom_accent": "#FF6C8CFF",
+    "ui_scale": 1.0,
+    "animation_speed": 1.0,
+    "background_blur": true,
+    "background_dim": 0.45,
+    "menu_background": "Photos",
+    "slide_duration": 9.0,
+    "photo_motion": true,
+    "photo_parallax": true,
+    "photo_shuffle": true,
+    "photo_dim": 0.25,
+    "hud_hide_debug": true,
+    "hud_accent_line": true,
+    "hud_radius": 3.0,
+    "hud_text_shadow": false,
+    "editor_grid": 10.0,
+    "editor_snap": true,
+    "editor_show_grid": true
+  }
+}

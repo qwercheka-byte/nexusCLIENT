@@ -167,6 +167,13 @@ public final class MenuBackground {
             release(this.cardSlides[i]);
             this.cardSlides[i] = null;
         }
+        for (int i = 0; i < 3; i++) {
+            if (this.cardCustomIds[i] != null) {
+                MinecraftClient.getInstance().getTextureManager().destroyTexture(this.cardCustomIds[i]);
+                this.cardCustomIds[i] = null;
+                this.cardCustom[i] = null;
+            }
+        }
     }
 
     // ------------------------------------------------------------------------------------------------ sky cards
@@ -174,15 +181,54 @@ public final class MenuBackground {
     private final Slide[] cardSlides = new Slide[3];
     private static final int[] CARD_INDEX = {1, 5, 7};
 
+    /** Dedicated per-card artwork (assets/nexus/textures/title/card_N.png); takes priority over slideshow shots. */
+    private final net.minecraft.client.texture.NativeImageBackedTexture[] cardCustom = new net.minecraft.client.texture.NativeImageBackedTexture[3];
+    private final Identifier[] cardCustomIds = new Identifier[3];
+    private final boolean[] cardMiss = new boolean[3];
+
+    @Nullable
+    private Identifier customCard(int i, int[] dims) {
+        if (this.cardMiss[i]) return null;
+        Identifier id = this.cardCustomIds[i];
+        if (id == null) {
+            try {
+                MinecraftClient client = MinecraftClient.getInstance();
+                net.minecraft.resource.Resource res = client.getResourceManager()
+                        .getResource(Identifier.of("nexus", "textures/title/card_" + i + ".png")).orElse(null);
+                if (res == null) { this.cardMiss[i] = true; return null; }
+                net.minecraft.client.texture.NativeImage img;
+                try (java.io.InputStream in = res.getInputStream()) {
+                    img = net.minecraft.client.texture.NativeImage.read(in);
+                }
+                net.minecraft.client.texture.NativeImageBackedTexture tex = new net.minecraft.client.texture.NativeImageBackedTexture(() -> "nexus-title-card-" + i, img);
+                id = Identifier.of("nexus", "dynamic/menu_card_" + i);
+                client.getTextureManager().registerTexture(id, tex);
+                this.cardCustom[i] = tex;
+                this.cardCustomIds[i] = id;
+            } catch (Throwable t) {
+                NexusClient.LOGGER.warn("Dedicated card image card_{} not usable: {}", i, t.toString());
+                this.cardMiss[i] = true;
+                return null;
+            }
+        }
+        if (dims != null && dims.length >= 2 && this.cardCustom[i] != null && this.cardCustom[i].getImage() != null) {
+            dims[0] = this.cardCustom[i].getImage().getWidth();
+            dims[1] = this.cardCustom[i].getImage().getHeight();
+        }
+        return id;
+    }
+
     /** Returns the texture for card slot {@code i}, or null while it is still decoding. */
     @Nullable
     public Identifier cardPhoto(int i, int[] dims) {
         i = ((i % this.cardSlides.length) + this.cardSlides.length) % this.cardSlides.length;
+        Identifier custom = customCard(i, dims);
+        if (custom != null) return custom;
         if (this.sources.size() < 2) return null;
         Slide s = this.cardSlides[i];
         if (s == null) {
             int idx = Math.min(Math.min(i + 1, CARD_INDEX[i]), this.sources.size() - 1);
-            s = request(idx);
+            s = request(idx, true);
             this.cardSlides[i] = s;
         }
         if (!pump(s) || s.texture == null) return null;
@@ -211,6 +257,10 @@ public final class MenuBackground {
     // ------------------------------------------------------------------------------------------------ loading
 
     private Slide request(int index) {
+        return request(index, true); // sharp backgrounds: no blur pass, period
+    }
+
+    private Slide request(int index, boolean noBlur) {
         MinecraftClient client = MinecraftClient.getInstance();
         Source src = this.sources.get(index);
         Slide slide = new Slide(index, this.sequence++);
@@ -221,7 +271,7 @@ public final class MenuBackground {
         int th = Math.max(64, Math.round(client.getWindow().getFramebufferHeight() * head));
         slide.pending = CompletableFuture.supplyAsync(() -> {
             try {
-                return decode(src.read(client), tw, th);
+                return decode(src.read(client), tw, th, noBlur);
             } catch (IOException | RuntimeException e) {
                 NexusClient.LOGGER.warn("Cannot load background {}: {}", src.name, e.toString());
                 return null;
@@ -233,6 +283,10 @@ public final class MenuBackground {
     /** Decodes PNG/JPEG (stb_image) and shrinks it so it just covers {@code tw x th}. Runs on a worker thread. */
     /** Decodes PNG/JPEG (stb_image) and shrinks it so it just covers {@code tw x th}. Runs on a worker thread. */
     private static NativeImage decode(byte[] data, int tw, int th) throws IOException {
+        return decode(data, tw, th, false);
+    }
+
+    private static NativeImage decode(byte[] data, int tw, int th, boolean noBlur) throws IOException {
         ByteBuffer buf = MemoryUtil.memAlloc(data.length);
         NativeImage src;
         try {
@@ -251,7 +305,7 @@ public final class MenuBackground {
         int iw = src.getWidth();
         int ih = src.getHeight();
         // a heavily blurred photo looks creamy behind the menu and decodes/draws faster
-        boolean blur = settings().backgroundBlur.isOn();
+        boolean blur = !noBlur && settings().backgroundBlur.isOn();
         float scale = Math.max(tw / (float) iw, th / (float) ih) * (blur ? 0.34F : 1.0F);
         NativeImage dst = src;
         if (scale < 1.0F) {

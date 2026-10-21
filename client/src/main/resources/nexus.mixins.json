@@ -11,6 +11,8 @@
     "GameRendererMixin",
     "IconsMixin",
     "InGameHudMixin",
+    "ItemCooldownAccessor",
+    "ItemCooldownEntryAccessor",
     "InactivityFpsLimiterMixin",
     "KeyboardMixin",
     "MouseMixin",
