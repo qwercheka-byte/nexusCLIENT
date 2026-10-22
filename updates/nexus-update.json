@@ -13,12 +13,12 @@
     }
   },
   "client": {
-    "version": "1.0.21",
-    "changelog": "1.0.21 — Новый игровой HUD (панели, инвентарь, статусы) по макету, всё на реальных данных, 5 драгабельных зон.\n1.0.20 — Нова панель на Right Shift (по макету: вкладки, поиск, свитчи), все фичи реальные.\n1.0.19 — Хотфикс SF-шрифта.",
+    "version": "1.0.22",
+    "changelog": "1.0.22 — Хотфикс HUD: текст больше не ломается при сжатии.\n1.0.21 — Новый игровой HUD (панели, инвентарь, статусы) по макету, 5 драгабельных зон.\n1.0.20 — Нова панель на Right Shift.\n1.0.19 — Хотфикс SF-шрифта.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.21-mc1.21.11.zip",
-        "sha256": "d4c28da6c22e32a3fe602529be28b455e43dbc0fb73ec56db71906eb4f2fe9f9",
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.22-mc1.21.11.zip",
+        "sha256": "718e034d797f917073baf97f192712fb48430a0671d51503cb525de41adaf3c0",
         "size": 4201660
       }
     }
