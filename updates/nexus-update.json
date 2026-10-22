@@ -13,12 +13,12 @@
     }
   },
   "client": {
-    "version": "1.0.16",
-    "changelog": "1.0.16 — Delivery HUD (всегда включён, не модуль): панель сервера, эффекты, чип доставки, тех.строка; перетаскивание панелей при открытом чате; удалены Waypoints/Halo/ModuleList/WorldTime.",
+    "version": "1.0.17",
+    "changelog": "1.0.17 — Pulse Visuals-пак: визуалы (Hit Particles, Hitmarker, Trails, JumpCircles, KillEffects), повторения эффектов, Streamer Mode, HUD (Watermark, Cooldowns, Hotkeys, CPS), утилиты (Auto Respawn, Auto Eat, Auto Reconnect, Friends). Всё в одном стиле Nexus.\\n1.0.16 — Delivery HUD (панель сервера, эффекты, delivery-чип, драг в чате); убраны Waypoints/Halo/ModuleList/WorldTime.",
     "files": {
       "1.21.11": {
-        "url": "https://raw.githubusercontent.com/qwercheka-byte/nexusCLIENT/main/updates/nexus-client-1.0.16-mc1.21.11.zip",
-        "sha256": "2e555342b5059964f3faa7c673d4a4205e0dbc949f4a8a000151ed5c06683239",
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.17-mc1.21.11.zip",
+        "sha256": "164347f2b3a5c95967c2ce21be8f37dc6bddd787c2b72b8272f3b7bb2c0e61f6",
         "size": 4201660
       }
     }
