@@ -13,12 +13,12 @@
     }
   },
   "client": {
-    "version": "1.0.19",
-    "changelog": "1.0.19 — Хотфикс нового SF-шрифта: рендерится корректно, без квадратов и «тетрадки» (было в 1.0.18).\\n1.0.18 — UI-шрифт заменён на SF (декод из SDF-атласов).\\n1.0.17 — Pulse Visuals-пак: визуалы, HUD, утилиты, Streamer Mode.",
+    "version": "1.0.20",
+    "changelog": "1.0.20 — Нова панель на Right Shift (по макету: вкладки, поиск, свитчи), все фичи реальные.\n1.0.19 — Хотфикс SF-шрифта.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.19-mc1.21.11.zip",
-        "sha256": "4c68bf1b5f571fdc0ab5de52f9bb78800e68a4e519564fe760b22cad747ec1e1",
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.20-mc1.21.11.zip",
+        "sha256": "936085a1005089fa676abc24855df95586968c97c0800e3fa38589d8b4a5c083",
         "size": 4201660
       }
     }
