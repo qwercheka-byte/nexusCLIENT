@@ -13,12 +13,12 @@
     }
   },
   "client": {
-    "version": "1.0.22",
-    "changelog": "1.0.22 — Хотфикс HUD: текст больше не ломается при сжатии.\n1.0.21 — Новый игровой HUD (панели, инвентарь, статусы) по макету, 5 драгабельных зон.\n1.0.20 — Нова панель на Right Shift.\n1.0.19 — Хотфикс SF-шрифта.",
+    "version": "1.0.23",
+    "changelog": "1.0.23 — Шрифт починен окончательно: атлас теперь совпадает с таблицей, весь текст читается.\n1.0.22 — Хотфикс HUD: текст больше не ломается при сжатии.\n1.0.21 — Новый игровой HUD по макету, 5 драгабельных зон.\n1.0.20 — Нова панель на Right Shift.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.22-mc1.21.11.zip",
-        "sha256": "718e034d797f917073baf97f192712fb48430a0671d51503cb525de41adaf3c0",
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.23-mc1.21.11.zip",
+        "sha256": "c3991c08a0b8fa5e23b84086f0cb32a85f7c0de408e2bab155609437761986ac",
         "size": 4201660
       }
     }
