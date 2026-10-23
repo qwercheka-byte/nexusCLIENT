@@ -23,11 +23,11 @@
       }
     }
   },
-  "version": "1.0.26",
+  "version": "1.0.27",
   "mc": "1.21.11",
-  "file": "nexus-client-1.0.26+mc1.21.11.zip",
-  "sha256": "6a8134c8c1d627d079941dea9d886691432e5827a69c346cf8fec7c4e9cc98ee",
-  "size": 4330828,
+  "file": "nexus-client-1.0.27+mc1.21.11.zip",
+  "sha256": "a5350ffbdd855a87b8474c7b6d5856e12768ba0d03fea30cc5edc3de2a7607c5",
+  "size": 5084097,
   "released": "2026-10-23",
-  "notes": "1.0.26: TTF-шрифты продублированы в textures/font — страховка на случай, если 1.21.11 ищет font-файлы в textures/. Плюс всё из 1.0.25: двойной TTF+атлас, дефолт-бинды G/V/B/N/X, живая карточка эффектов."
+  "notes": "1.0.27: шрифт КАК У ДРУГИХ КЛИЕНТОВ — MTSDF-атласы сконвертированы в стандартный bitmap-провайдер 1.21.11 + fallback в ванильный unifont (читаемость гарантирована). HUD: watermark/armor/potion/cps/keystrokes/target включены по умолчанию; дефолт-бинды G/V/B/N/X."
 }
