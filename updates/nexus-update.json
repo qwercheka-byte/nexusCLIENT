@@ -13,12 +13,12 @@
     }
   },
   "client": {
-    "version": "1.0.24",
-    "changelog": "1.0.24 — Шрифт на TTF-движке (текст читается везде), анимации HUD и панели, Target HUD по умолчанию.\n1.0.23 — Атлас шрифта под таблицу.\n1.0.22 — Хотфикс HUD.\n1.0.21 — Новый игровой HUD по макету, 5 драгабельных зон.\n1.0.20 — Панель на Right Shift.",
+    "version": "1.0.25",
+    "changelog": "1.0.25 — Шрифт с двойной защитой (TTF + атлас), дефолтные бинды G/V/B/N/X, живая карточка эффектов.\n1.0.24 — TTF-шрифт, анимации HUD/панели, Target HUD по умолчанию.\n1.0.23 — Атлас шрифта под таблицу.\n1.0.22 — Хотфикс HUD.\n1.0.21 — Новый игровой HUD по макету.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.24-mc1.21.11.zip",
-        "sha256": "2eb583c3b29138fa6e5c5fe91a97495a3c6d3730e9e48e4ff079afb6f811b73c",
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.25-mc1.21.11.zip",
+        "sha256": "c1a94e6a598ab1dbcc165c51444a9b5c561f89e1d62944b0c9fab6a147ffc554",
         "size": 4201660
       }
     }
