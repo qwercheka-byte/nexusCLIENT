@@ -13,13 +13,13 @@
     }
   },
   "client": {
-    "version": "1.0.29",
-    "changelog": "1.0.29 — Шрифт-починка окончательная: рендер текста переведён на ванильный TextRenderer БЕЗ кастомного font-id + font-json = ссылка на minecraft:default. Квадратов больше быть не может. Маркер сборки: зелёная полоска вверху главного меню.\n1.0.27 — HUD по умолчанию: watermark/armor/potion/cps/keystrokes/target; дефолтные бинды G/V/B/N/X; карточка показывает любой активный эффект.",
+    "version": "1.0.30",
+    "changelog": "1.0.30 — Текст стал читаемого размера (UI_SCALE 0.5→1.0 под ванильный шрифт). Маркер сборки: ЖЁЛТАЯ полоска вверху главного меню.\n1.0.29 — Рендер БЕЗ кастомного font-id, font-json ссылается на ванильный default; HUD по умолчанию: watermark/armor/potion/cps/keystrokes/target; бинды G/V/B/N/X.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.29-mc1.21.11.zip",
-        "sha256": "eb5e1934799e93fb968bbc45fa88a2d8d0f7909671a91ca7bd1d214552ad85e3",
-        "size": 4632897
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.30-mc1.21.11.zip",
+        "sha256": "4e44271f601058cf1fd03c844df4b47b4100f567c9e41d8ad6413752c0c8bac0",
+        "size": 4632888
       }
     }
   }
