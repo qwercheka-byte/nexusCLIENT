@@ -13,13 +13,13 @@
     }
   },
   "client": {
-    "version": "1.0.31",
-    "changelog": "1.0.31 — HUD больше не «картинка»: декоративные стикеры из центра/левой колонки сняты; дубликаты-модули (watermark/armor/coords) выключены по умолчанию — чистый HUD из живых пилюль: Nexus+fps+host+ping, координаты+bps, инвентарь-сетка, активный эффект, кулдауны, уведомления. Маркер: МАДЖЕНТА-полоска.\n1.0.30 — ванильный шрифт в читаемом размере (UI_SCALE 1.0).\n1.0.29 — код без кастомного font-id (тофу невозможен).",
+    "version": "1.0.32",
+    "changelog": "1.0.32 — Маркер версии снят: главное меню полностью чистое. Шрифт финальный: ванильный default 1:1, весь текст читается.\n1.0.31 — HUD без коллажа.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.31-mc1.21.11.zip",
-        "sha256": "e16d08d11dc474404a1abd3125b3cd143039d1af7c1822732f1f845f77a8dbcb",
-        "size": 4632820
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.32-mc1.21.11.zip",
+        "sha256": "fec43bc5084c801a17ec25ff09b32309d9dec5558efe52e2bf9329434b7cf409",
+        "size": 4632791
       }
     }
   }
