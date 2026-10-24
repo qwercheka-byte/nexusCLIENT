@@ -13,13 +13,13 @@
     }
   },
   "client": {
-    "version": "1.0.30",
-    "changelog": "1.0.30 — Текст стал читаемого размера (UI_SCALE 0.5→1.0 под ванильный шрифт). Маркер сборки: ЖЁЛТАЯ полоска вверху главного меню.\n1.0.29 — Рендер БЕЗ кастомного font-id, font-json ссылается на ванильный default; HUD по умолчанию: watermark/armor/potion/cps/keystrokes/target; бинды G/V/B/N/X.",
+    "version": "1.0.31",
+    "changelog": "1.0.31 — HUD больше не «картинка»: декоративные стикеры из центра/левой колонки сняты; дубликаты-модули (watermark/armor/coords) выключены по умолчанию — чистый HUD из живых пилюль: Nexus+fps+host+ping, координаты+bps, инвентарь-сетка, активный эффект, кулдауны, уведомления. Маркер: МАДЖЕНТА-полоска.\n1.0.30 — ванильный шрифт в читаемом размере (UI_SCALE 1.0).\n1.0.29 — код без кастомного font-id (тофу невозможен).",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.30-mc1.21.11.zip",
-        "sha256": "4e44271f601058cf1fd03c844df4b47b4100f567c9e41d8ad6413752c0c8bac0",
-        "size": 4632888
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.31-mc1.21.11.zip",
+        "sha256": "e16d08d11dc474404a1abd3125b3cd143039d1af7c1822732f1f845f77a8dbcb",
+        "size": 4632820
       }
     }
   }
