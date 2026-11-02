@@ -13,13 +13,13 @@
     }
   },
   "client": {
-    "version": "1.0.32",
-    "changelog": "1.0.32 — Маркер версии снят: главное меню полностью чистое. Шрифт финальный: ванильный default 1:1, весь текст читается.\n1.0.31 — HUD без коллажа.",
+    "version": "1.0.33",
+    "changelog": "1.0.33 — внутриигровой интерфейс Nexus переведён на Onest с полной кириллицей; шрифт стал крупнее и ровнее (+20%). Для редких символов оставлен ванильный fallback. Внешний Nexus Launcher не менялся.\n1.0.32 — маркер версии снят; главное меню без полоски.",
     "files": {
       "1.21.11": {
-        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.32-mc1.21.11.zip",
-        "sha256": "fec43bc5084c801a17ec25ff09b32309d9dec5558efe52e2bf9329434b7cf409",
-        "size": 4632791
+        "url": "https://github.com/qwercheka-byte/nexusCLIENT/raw/main/updates/nexus-client-1.0.33-mc1.21.11.zip",
+        "sha256": "0c90bd3430e72ffc33c07daa06cca21b45b991a49f8db0e101be143064700b61",
+        "size": 4743456
       }
     }
   }
