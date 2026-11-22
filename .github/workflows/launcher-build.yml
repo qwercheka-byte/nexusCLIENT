@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish release v1.3.17 after the PR has been merged'
+        description: 'Publish release v1.3.18 after the PR has been merged'
         type: boolean
         required: true
         default: false
@@ -99,18 +99,18 @@ jobs:
           root = Path('release')
           manifest_path = root / 'nexus-update.json'
           manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          assert manifest['launcher']['version'] == '1.2.8'
+          assert manifest['launcher']['version'] == '1.2.9'
           assert manifest['client']['version'] == '1.0.34'
-          app = root / 'updates/nexus-launcher-1.2.8-app.zip'
+          app = root / 'updates/nexus-launcher-1.2.9-app.zip'
           entry = manifest['launcher']['files']['win-app']
           assert hashlib.sha256(app.read_bytes()).hexdigest() == entry['sha256']
           assert app.stat().st_size == entry['size']
-          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.17/{app.name}"
+          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.18/{app.name}"
           manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           PY
-          gh release create v1.3.17 --target "$TARGET_SHA" --draft \
-            --title 'Nexus Launcher 1.2.8 — автообновление' \
-            --notes 'Автоматическая установка обновлений и обновление иконки Windows. Первый переход со старой версии нужно подтвердить вручную.' \
+          gh release create v1.3.18 --target "$TARGET_SHA" --draft \
+            --title 'Nexus Launcher 1.2.9 — новый логотип' \
+            --notes 'Отпечаток пальца теперь отображается внутри лаунчера: в боковой панели, на главной и на странице о программе.' \
             'release/Nexus Launcher.exe' 'release/Nexus Launcher.zip' \
-            release/nexus-update.json release/updates/nexus-launcher-1.2.8-app.zip
-          gh release edit v1.3.17 --draft=false --latest
+            release/nexus-update.json release/updates/nexus-launcher-1.2.9-app.zip
+          gh release edit v1.3.18 --draft=false --latest

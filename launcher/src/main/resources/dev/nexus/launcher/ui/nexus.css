@@ -59,10 +59,6 @@
 }
 .brand-title { -fx-font-size: 17px; -fx-font-weight: bold; }
 .brand-sub { -fx-font-size: 10.5px; -fx-text-fill: -nx-text-faint; }
-.brand-logo {
-    -fx-background-color: linear-gradient(to bottom right, -nx-accent, -nx-accent-2);
-    -fx-background-radius: 10;
-}
 
 .nav-button {
     -fx-background-color: transparent;

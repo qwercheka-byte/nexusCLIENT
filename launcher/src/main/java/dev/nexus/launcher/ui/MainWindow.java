@@ -15,9 +15,11 @@ import javafx.animation.Timeline;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -342,13 +344,16 @@ public final class MainWindow {
         return out;
     }
 
-    /** A logo node for the UI (sidebar, about page). */
+    /** The same fingerprint as the app icon, cropped closer for legibility at UI sizes. */
     static Node logoNode(double size) {
-        Region r = Icons.icon(Icons.LOGO, size);
-        r.getStyleClass().setAll("brand-logo");
-        r.setMinSize(size, size);
-        r.setPrefSize(size, size);
-        r.setMaxSize(size, size);
-        return r;
+        Image image = new Image(MainWindow.class.getResource("/dev/nexus/launcher/img/app-icon.png").toExternalForm());
+        ImageView view = new ImageView(image);
+        double side = Math.min(image.getWidth(), image.getHeight()) * 0.73;
+        view.setViewport(new Rectangle2D((image.getWidth() - side) / 2, (image.getHeight() - side) / 2, side, side));
+        view.setFitWidth(size);
+        view.setFitHeight(size);
+        view.setPreserveRatio(true);
+        view.setSmooth(true);
+        return view;
     }
 }

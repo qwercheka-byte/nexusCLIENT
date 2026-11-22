@@ -71,7 +71,8 @@ final class ModsTab extends VBox implements InstancePage.Tab {
         Fx.tip(updatesBtn, I18n.t("mods.checkUpdatesTip"));
         Button folder = Fx.iconButton(Icons.FOLDER, I18n.t("mods.openFolder"));
         folder.setOnAction(e -> Fx.openPath(inst.modsDir()));
-        nexusBtn = Fx.button(I18n.t("mods.installNexus"), Icons.LOGO, "primary");
+        nexusBtn = Fx.button(I18n.t("mods.installNexus"), null, "primary");
+        nexusBtn.setGraphic(MainWindow.logoNode(16));
         nexusBtn.setOnAction(e -> installNexus());
         perfBtn = Fx.button(I18n.t("perf.button"), Icons.SPEED);
         perfBtn.setOnAction(e -> confirmPerformance());
