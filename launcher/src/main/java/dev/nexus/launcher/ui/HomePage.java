@@ -106,9 +106,10 @@ public final class HomePage extends VBox implements MainWindow.Page {
     }
 
     private HBox brandRow() {
-        Label brand = Fx.label("➤ NEXUS", "home-brand");
+        Label brand = Fx.label("NEXUS", "home-brand");
         brand.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 17px; -fx-letter-spacing: 1.5px;");
-        HBox row = new HBox(brand);
+        HBox row = new HBox(10, MainWindow.logoNode(28), brand);
+        row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(24, 0, 0, 34));
         return row;
     }
