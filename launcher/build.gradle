@@ -46,7 +46,12 @@ def clientProps = new Properties()
 def clientPropsFile = new File(clientDir, 'gradle.properties')
 if (!clientPropsFile.isFile()) throw new GradleException("NEXUS Client project not found: ${clientDir} (set -Pclient_dir=...)")
 clientPropsFile.withInputStream { clientProps.load(it) }
-def clientVersion = clientProps.getProperty('mod_version')
+def clientPackageOverride = project.findProperty('clientPackage')
+def clientVersionOverride = project.findProperty('clientVersion')
+if (clientVersionOverride && !clientPackageOverride) {
+    throw new GradleException('-PclientVersion requires -PclientPackage with the matching built client package')
+}
+def clientVersion = (clientVersionOverride ?: clientProps.getProperty('mod_version')).toString()
 def clientMc = clientProps.getProperty('minecraft_version')
 def clientPackageName = "nexus-client-${clientVersion}+mc${clientMc}.zip"
 
@@ -72,7 +77,6 @@ tasks.register('buildClient', Exec) {
 }
 
 /* The mod package is shipped inside the launcher as a resource: app/bundled/nexus-client-<v>+mc<mc>.zip */
-def clientPackageOverride = project.findProperty('clientPackage')
 processResources {
     inputs.properties buildProps
     filesMatching('dev/nexus/launcher/build.properties') {
@@ -84,6 +88,17 @@ processResources {
         into 'dev/nexus/launcher/backgrounds'
     }
     if (clientPackageOverride) {
+        doFirst {
+            def packageFile = file(clientPackageOverride)
+            if (!packageFile.isFile()) throw new GradleException("Client package not found: ${packageFile}")
+            new java.util.zip.ZipFile(packageFile).withCloseable { zip ->
+                def entry = zip.getEntry('fabric.mod.json')
+                if (entry == null) throw new GradleException("Client package has no fabric.mod.json: ${packageFile}")
+                def metadata = new groovy.json.JsonSlurper().parse(zip.getInputStream(entry), 'UTF-8')
+                if (metadata.version != clientVersion) throw new GradleException(
+                        "Client package version ${metadata.version} does not match ${clientVersion}; set -PclientVersion")
+            }
+        }
         from(file(clientPackageOverride)) { into 'bundled'; rename { clientPackageName } }
     } else {
         from(tasks.named('buildClient')) { into 'bundled' }
@@ -92,6 +107,15 @@ processResources {
 
 // No jar is built: the launcher is shipped as plain class files (app/) next to a jlink runtime.
 tasks.named('jar') { enabled = false }
+
+tasks.register('testUpdateMechanics', JavaExec) {
+    group = 'verification'
+    description = 'Runs updater and native starter smoke tests without a test framework'
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.nexus.launcher.update.UpdateMechanicsTest'
+}
+
 
 /** Development start on any OS with the JavaFX of the machine running Gradle. */
 tasks.register('run', JavaExec) {
@@ -206,8 +230,11 @@ def appDir = new File(winDir, 'app')
 tasks.register('appWin', Sync) {
     group = 'distribution'
     description = 'Assembles the app folder (class files, no jar)'
-    dependsOn 'classes'
+    dependsOn 'classes', 'winLauncherExe'
     into appDir
+    // Keep the native starter inside the verified app update too. Older launchers can still unpack this
+    // as a normal win-app package; the new application updates the installed starter on its first start.
+    into('dev/nexus/launcher/update/native') { from(new File(winDir, exeName)) }
     from sourceSets.main.output
     from({ configurations.runtimeClasspath.filter { it.name.startsWith('gson-') }.collect { zipTree(it) } }) {
         exclude 'module-info.class', 'META-INF/versions/**', 'META-INF/MANIFEST.MF', 'META-INF/maven/**'
@@ -327,6 +354,21 @@ tasks.register('release') {
     outputs.dir(outDir)
     outputs.upToDateWhen { false }
     doLast {
+        // Do not publish an older client by accident when the launcher sources lag behind the live release.
+        def previousManifestFile = file('../updates/nexus-update.json')
+        def previousManifest = previousManifestFile.isFile() ? new groovy.json.JsonSlurper().parse(previousManifestFile, 'UTF-8') : null
+        def publishedClient = previousManifest?.client?.version?.toString()
+        def numericVersion = { String v -> v != null && (v ==~ /\d+(\.\d+)*/) }
+        if (numericVersion(publishedClient) && numericVersion(clientVersion)) {
+            def published = publishedClient.tokenize('.').collect { new BigInteger(it) }
+            def candidate = clientVersion.tokenize('.').collect { new BigInteger(it) }
+            int comparison = 0
+            for (int i = 0; i < Math.max(published.size(), candidate.size()) && comparison == 0; i++) {
+                comparison = (i < candidate.size() ? candidate[i] : BigInteger.ZERO) <=>
+                        (i < published.size() ? published[i] : BigInteger.ZERO)
+            }
+            if (comparison < 0) throw new GradleException("Client ${clientVersion} is older than published ${publishedClient}; use -PclientPackage and -PclientVersion")
+        }
         project.delete(outDir)
         def updDir = new File(outDir, 'updates')
         updDir.mkdirs()
@@ -354,7 +396,8 @@ tasks.register('release') {
         if (repo) manifest.page = "https://github.com/${repo}/releases/latest".toString()
         // "win-app" (not "win"): launchers 1.0.0/1.0.1 cannot install the new layout and offer a manual download instead
         manifest.launcher = [version: launcherVersion, changelog: notes('launcher.txt'), files: ['win-app': entry(appZip)]]
-        manifest.client = [version: clientVersion, changelog: notes('client.txt'), files: [(clientMc): entry(clientZip)]]
+        def clientNotes = clientVersionOverride && publishedClient == clientVersion ? previousManifest.client.changelog : notes('client.txt')
+        manifest.client = [version: clientVersion, changelog: clientNotes, files: [(clientMc): entry(clientZip)]]
         def json = new groovy.json.JsonGenerator.Options().disableUnicodeEscaping().build().toJson(manifest)
         // prettyPrint escapes non-ASCII as \\uXXXX; turn those back into characters for a readable changelog
         def pretty = groovy.json.JsonOutput.prettyPrint(json).replaceAll(/(?<!\\)((?:\\\\)*)\\u([0-9a-fA-F]{4})/) { all, bs, hex ->

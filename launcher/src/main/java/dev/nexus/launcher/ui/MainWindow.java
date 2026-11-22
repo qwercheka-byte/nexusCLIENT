@@ -47,6 +47,7 @@ public final class MainWindow {
     private Node currentPage;
     private InstancesPage instancesPage;
     private final WindowChrome chrome;
+    private boolean checkingUpdates;
     private static final double MIN_W = 960, MIN_H = 620;
 
     public MainWindow(Stage stage, HostServices hostServices) {
@@ -143,6 +144,7 @@ public final class MainWindow {
         }
         Fx.async(() -> {
             Updates.cleanup();
+            Updates.refreshWindowsStarter();
             return true;
         }, x -> { }, err -> { });
         // first check shortly after start, then every 6 hours (the launcher often stays open, hidden, during play)
@@ -161,11 +163,23 @@ public final class MainWindow {
      * "up to date" as toasts; automatic checks only log them.
      */
     public void checkForUpdates(boolean manual, Consumer<Updates.Check> done) {
+        if (checkingUpdates) {
+            if (done != null) done.accept(null);
+            return;
+        }
+        checkingUpdates = true;
         Fx.async(Updates::check, c -> {
-            updateBanner.offer(c);
+            checkingUpdates = false;
+            // An automatic check that was disabled while the request was in flight must not install anything.
+            if (manual || Settings.get().checkUpdates) {
+                boolean autoInstall = Settings.get().checkUpdates && Updates.safeForAutomaticInstall(c);
+                if (c.any() && !autoInstall && Settings.get().checkUpdates) Log.warn("Automatic update skipped: HTTPS is required");
+                updateBanner.offer(c, autoInstall);
+            }
             if (manual && !c.any()) Toasts.success(I18n.t("update.upToDate", BuildInfo.VERSION));
             if (done != null) done.accept(c);
         }, err -> {
+            checkingUpdates = false;
             Log.warn("Update check failed: " + Fx.errorText(err));
             if (manual) Toasts.error(I18n.t("update.checkFailed", Fx.errorText(err)));
             if (done != null) done.accept(null);

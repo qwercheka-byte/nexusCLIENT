@@ -79,9 +79,12 @@ public record UpdateManifest(String page, Component launcher, Component client) 
         JsonObject c = root.getAsJsonObject(key);
         String version = str(c, "version");
         if (blank(version)) throw new IOException("\"" + key + ".version\" is missing in nexus-update.json");
+        version = version.trim();
+        if (!safeName(version)) throw new IOException("Invalid " + key + " version in nexus-update.json");
         Map<String, FileRef> files = new LinkedHashMap<>();
         if (c.has("files") && c.get("files").isJsonObject()) {
             for (Map.Entry<String, JsonElement> e : c.getAsJsonObject("files").entrySet()) {
+                if (!safeName(e.getKey())) throw new IOException("Invalid " + key + " file key in nexus-update.json");
                 if (!e.getValue().isJsonObject()) continue;
                 JsonObject f = e.getValue().getAsJsonObject();
                 String url = str(f, "url"), sha = str(f, "sha256");
@@ -93,6 +96,10 @@ public record UpdateManifest(String page, Component launcher, Component client) 
             }
         }
         return new Component(version.trim(), str(c, "changelog"), files);
+    }
+
+    private static boolean safeName(String value) {
+        return value != null && value.matches("[A-Za-z0-9][A-Za-z0-9._+\\-]{0,127}") && !value.contains("..");
     }
 
     private static String resolve(String base, String url) throws IOException {

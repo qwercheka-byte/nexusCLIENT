@@ -1,0 +1,116 @@
+name: Build Windows launcher
+
+on:
+  push:
+    paths:
+      - 'launcher/**'
+      - 'client/**'
+      - 'updates/nexus-client-1.0.34-mc1.21.11.zip'
+      - '.github/workflows/launcher-build.yml'
+  pull_request:
+    paths:
+      - 'launcher/**'
+      - 'client/**'
+      - 'updates/nexus-client-1.0.34-mc1.21.11.zip'
+      - '.github/workflows/launcher-build.yml'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish release v1.3.17 after the PR has been merged'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  windows-launcher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Windows build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 nsis
+      - name: Build and test
+        working-directory: launcher
+        run: |
+          sh ./gradlew testUpdateMechanics release \
+            -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip \
+            -PclientVersion=1.0.34
+      - name: Upload release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-launcher-release
+          path: launcher/build/release/
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Test updater on Windows
+        working-directory: launcher
+        shell: cmd
+        run: gradlew.bat testUpdateMechanics -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip -PclientVersion=1.0.34
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: [windows-launcher, windows-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Verify this exact commit was merged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.sha }}
+          HEAD_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          PR=$(gh pr list --state merged --head "$HEAD_BRANCH" --base main --json number,headRefOid --jq ".[] | select(.headRefOid == \"$EXPECTED_SHA\") | .number" | head -n 1)
+          test -n "$PR" || { echo 'The exact commit must first be merged to main'; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: nexus-launcher-release
+          path: release
+      - name: Publish release after verifying assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path('release')
+          manifest_path = root / 'nexus-update.json'
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          assert manifest['launcher']['version'] == '1.2.8'
+          assert manifest['client']['version'] == '1.0.34'
+          app = root / 'updates/nexus-launcher-1.2.8-app.zip'
+          entry = manifest['launcher']['files']['win-app']
+          assert hashlib.sha256(app.read_bytes()).hexdigest() == entry['sha256']
+          assert app.stat().st_size == entry['size']
+          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.17/{app.name}"
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          gh release create v1.3.17 --target "$TARGET_SHA" --draft \
+            --title 'Nexus Launcher 1.2.8 — автообновление' \
+            --notes 'Автоматическая установка обновлений и обновление иконки Windows. Первый переход со старой версии нужно подтвердить вручную.' \
+            'release/Nexus Launcher.exe' 'release/Nexus Launcher.zip' \
+            release/nexus-update.json release/updates/nexus-launcher-1.2.8-app.zip
+          gh release edit v1.3.17 --draft=false --latest

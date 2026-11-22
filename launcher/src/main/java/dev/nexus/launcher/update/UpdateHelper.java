@@ -43,13 +43,16 @@ public final class UpdateHelper {
         List<String> jvmArgs = Arrays.asList(args).subList(4, args.length);
 
         log("waiting for launcher process " + pid);
-        ProcessHandle.of(pid).ifPresent(p -> {
+        ProcessHandle process = ProcessHandle.of(pid).orElse(null);
+        if (process != null) {
             try {
-                p.onExit().get(120, TimeUnit.SECONDS);
+                process.onExit().get(120, TimeUnit.SECONDS);
             } catch (Exception e) {
-                log("launcher did not exit in time: " + e);
+                // Never swap files or start a second launcher while the original process is still running.
+                log("launcher did not exit; update postponed: " + e);
+                return;
             }
-        });
+        }
         sleep(400);
 
         boolean replaced = swap(app, fresh);
