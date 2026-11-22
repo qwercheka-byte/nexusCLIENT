@@ -116,6 +116,13 @@ tasks.register('testUpdateMechanics', JavaExec) {
     mainClass = 'dev.nexus.launcher.update.UpdateMechanicsTest'
 }
 
+tasks.register('testBrandLogo', JavaExec) {
+    group = 'verification'
+    description = 'Checks the transparent fingerprint logo resource'
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.nexus.launcher.ui.BrandLogoTest'
+}
 
 /** Development start on any OS with the JavaFX of the machine running Gradle. */
 tasks.register('run', JavaExec) {

@@ -344,9 +344,9 @@ public final class MainWindow {
         return out;
     }
 
-    /** The same fingerprint as the app icon, cropped closer for legibility at UI sizes. */
+    /** The fingerprint on a transparent background, cropped closer for legibility at UI sizes. */
     static Node logoNode(double size) {
-        Image image = new Image(MainWindow.class.getResource("/dev/nexus/launcher/img/app-icon.png").toExternalForm());
+        Image image = new Image(MainWindow.class.getResource("/dev/nexus/launcher/img/brand-fingerprint.png").toExternalForm());
         ImageView view = new ImageView(image);
         double side = Math.min(image.getWidth(), image.getHeight()) * 0.73;
         view.setViewport(new Rectangle2D((image.getWidth() - side) / 2, (image.getHeight() - side) / 2, side, side));
