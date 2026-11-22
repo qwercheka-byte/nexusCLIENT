@@ -4,6 +4,8 @@ import dev.nexus.launcher.core.LauncherDirs;
 import dev.nexus.launcher.core.Log;
 import dev.nexus.launcher.core.Settings;
 import javafx.animation.AnimationTimer;
+import javafx.scene.effect.DisplacementMap;
+import javafx.scene.effect.FloatMap;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
@@ -23,9 +25,8 @@ import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Animated photo background of the launcher window (same idea as the NEXUS Client main menu): a slideshow where
- * every photo slowly zooms and pans (Ken Burns effect), consecutive photos cross-fade and the picture follows the
- * mouse a little (parallax).
+ * Animated launcher background: either the bundled liquid image with a smooth displacement effect, or a slideshow
+ * where photos slowly zoom and pan, consecutive photos cross-fade and the image follows the mouse slightly.
  * <p>
  * Photos: the user's own PNG/JPG files in {@code <data>/backgrounds/}, otherwise the photos shipped with the
  * launcher ({@code /dev/nexus/launcher/backgrounds/bg_NN.jpg}, copied from the client project at build time).
@@ -40,6 +41,8 @@ public final class PhotoBackground extends Pane {
     private static final double PARALLAX = 0.015;
     private static final long MAX_FILE_BYTES = 40L * 1024 * 1024;
     private static final int MAX_PHOTOS = 64;
+    private static final int FLOW_W = 80, FLOW_H = 48;
+    private static final long FLOW_FRAME_NS = 50_000_000L; // 20 updates/sec
 
     private final ImageView[] views = {new ImageView(), new ImageView()};
     private final Slot[] slots = {new Slot(), new Slot()};
@@ -57,6 +60,12 @@ public final class PhotoBackground extends Pane {
     private long lastNs;
     private boolean enabled;
     private boolean windowVisible = true;
+    private boolean liquidMode;
+    private FloatMap flowMap;
+    private DisplacementMap flowEffect;
+    private final float[] flowSamples = new float[FLOW_W * FLOW_H * 2];
+    private double flowSeconds;
+    private long lastFlowNs;
 
     public PhotoBackground() {
         getStyleClass().add("photo-background");
@@ -113,7 +122,19 @@ public final class PhotoBackground extends Pane {
     public void reload() {
         Settings s = Settings.get();
         dim.setStyle("-fx-background-color: rgba(9,10,15," + clamp(s.photoDim, 0, 0.9) + ");");
-        List<String> found = s.photoBackground ? scan() : List.of();
+        URL liquid = PhotoBackground.class.getResource("/dev/nexus/launcher/img/backgrounds/liquid.jpg");
+        boolean useLiquid = s.photoBackground && s.liquidBackground && liquid != null;
+        List<String> found = !s.photoBackground ? List.of() : useLiquid ? List.of(liquid.toExternalForm()) : scan();
+        if (liquidMode != useLiquid) {
+            liquidMode = useLiquid;
+            if (liquidMode && flowEffect == null) {
+                flowMap = new FloatMap(FLOW_W, FLOW_H);
+                flowEffect = new DisplacementMap(flowMap);
+                flowEffect.setWrap(true);
+            }
+            for (ImageView view : views) view.setEffect(liquidMode ? flowEffect : null);
+            lastFlowNs = 0;
+        }
         if (!found.equals(urls)) {
             urls.clear();
             urls.addAll(found);
@@ -218,6 +239,19 @@ public final class PhotoBackground extends Pane {
         if (w <= 0 || h <= 0 || urls.isEmpty()) return;
         long dt = lastNs == 0 ? 0 : Math.min(100_000_000L, now - lastNs);
         lastNs = now;
+        if (liquidMode) {
+            flowSeconds += dt / 1_000_000_000.0;
+            if (lastFlowNs == 0 || now - lastFlowNs >= FLOW_FRAME_NS) {
+                LiquidMotion.fill(flowSamples, FLOW_W, FLOW_H, flowSeconds);
+                for (int y = 0; y < FLOW_H; y++) {
+                    for (int x = 0; x < FLOW_W; x++) {
+                        int i = (y * FLOW_W + x) * 2;
+                        flowMap.setSamples(x, y, flowSamples[i], flowSamples[i + 1]);
+                    }
+                }
+                lastFlowNs = now;
+            }
+        }
 
         Slot cur = slots[front];
         if (cur.image == null) {
@@ -286,7 +320,7 @@ public final class PhotoBackground extends Pane {
         double p = el < cycle ? el / (double) cycle : 2.0 - el / (double) cycle;
         p = p * p * (3 - 2 * p);
         boolean zoomIn = (s.sequence & 1) == 0;
-        double zoom = 1 + ZOOM * (zoomIn ? p : 1 - p);
+        double zoom = 1 + (liquidMode ? 0.025 : ZOOM) * (zoomIn ? p : 1 - p);
         double angle = hash(s.sequence * 2 + 1) * Math.PI * 2;
         double cover = Math.max(w / iw, h / ih);
         double fw = iw * cover;

@@ -187,7 +187,13 @@ final class SettingsPage extends VBox implements MainWindow.Page {
             s.photoBackground = v;
             window.applyBackground();
         });
+        CheckBox liquid = check(I18n.t("settings.liquidBg"), s.liquidBackground, v -> {
+            s.liquidBackground = v;
+            window.applyBackground();
+        });
+        liquid.disableProperty().bind(photos.selectedProperty().not());
         CheckBox shuffle = check(I18n.t("settings.photoShuffle"), s.photoShuffle, v -> s.photoShuffle = v);
+        shuffle.disableProperty().bind(liquid.selectedProperty());
         CheckBox frame = check(I18n.t("settings.customFrame"), s.customTitleBar, v -> {
             s.customTitleBar = v;
             Toasts.info(I18n.t("settings.customFrameRestart"));
@@ -211,7 +217,7 @@ final class SettingsPage extends VBox implements MainWindow.Page {
                         field(I18n.t("settings.language"), lang),
                         field(I18n.t("settings.accent"), accents),
                         frame, hint(I18n.t("settings.customFrameHint"))),
-                card(I18n.t("settings.background"), photos, shuffle,
+                card(I18n.t("settings.background"), photos, liquid, shuffle,
                         field(I18n.t("settings.photoDim"), Fx.row(10, dimSlider, dimValue)),
                         hint(I18n.t("settings.photoHint")),
                         Fx.row(8, photoFolder, photoReload)),

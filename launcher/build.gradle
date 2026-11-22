@@ -124,6 +124,22 @@ tasks.register('testBrandLogo', JavaExec) {
     mainClass = 'dev.nexus.launcher.ui.BrandLogoTest'
 }
 
+tasks.register('testLiquidMotion', JavaExec) {
+    group = 'verification'
+    description = 'Checks the liquid background asset and ripple field'
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.nexus.launcher.ui.LiquidMotionTest'
+}
+
+tasks.register('testLiquidFx', JavaExec) {
+    group = 'verification'
+    description = 'Checks JavaFX liquid rendering; requires a graphical display'
+    dependsOn 'testClasses'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dev.nexus.launcher.ui.LiquidBackgroundFxTest'
+}
+
 /** Development start on any OS with the JavaFX of the machine running Gradle. */
 tasks.register('run', JavaExec) {
     group = 'application'
