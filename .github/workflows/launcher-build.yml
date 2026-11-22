@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish release v1.3.19 after the PR has been merged'
+        description: 'Publish release v1.3.20 after the PR has been merged'
         type: boolean
         required: true
         default: false
@@ -39,7 +39,7 @@ jobs:
       - name: Build and test
         working-directory: launcher
         run: |
-          sh ./gradlew testUpdateMechanics testBrandLogo release \
+          sh ./gradlew testUpdateMechanics testBrandLogo testLiquidMotion release \
             -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip \
             -PclientVersion=1.0.34
       - name: Upload release files
@@ -62,7 +62,7 @@ jobs:
       - name: Test updater on Windows
         working-directory: launcher
         shell: cmd
-        run: gradlew.bat testUpdateMechanics testBrandLogo -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip -PclientVersion=1.0.34
+        run: gradlew.bat testUpdateMechanics testBrandLogo testLiquidMotion testLiquidFx -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip -PclientVersion=1.0.34
 
   publish:
     if: github.event_name == 'workflow_dispatch' && inputs.publish
@@ -99,18 +99,18 @@ jobs:
           root = Path('release')
           manifest_path = root / 'nexus-update.json'
           manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          assert manifest['launcher']['version'] == '1.2.10'
+          assert manifest['launcher']['version'] == '1.2.11'
           assert manifest['client']['version'] == '1.0.34'
-          app = root / 'updates/nexus-launcher-1.2.10-app.zip'
+          app = root / 'updates/nexus-launcher-1.2.11-app.zip'
           entry = manifest['launcher']['files']['win-app']
           assert hashlib.sha256(app.read_bytes()).hexdigest() == entry['sha256']
           assert app.stat().st_size == entry['size']
-          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.19/{app.name}"
+          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.20/{app.name}"
           manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           PY
-          gh release create v1.3.19 --target "$TARGET_SHA" --draft \
-            --title 'Nexus Launcher 1.2.10 — прозрачный логотип' \
-            --notes 'У логотипа-отпечатка внутри лаунчера убран чёрный фон.' \
+          gh release create v1.3.20 --target "$TARGET_SHA" --draft \
+            --title 'Nexus Launcher 1.2.11 — анимированный фон' \
+            --notes 'Новый фиолетовый фон с плавными волнами. Прежний фотофон можно вернуть в настройках.' \
             'release/Nexus Launcher.exe' 'release/Nexus Launcher.zip' \
-            release/nexus-update.json release/updates/nexus-launcher-1.2.10-app.zip
-          gh release edit v1.3.19 --draft=false --latest
+            release/nexus-update.json release/updates/nexus-launcher-1.2.11-app.zip
+          gh release edit v1.3.20 --draft=false --latest

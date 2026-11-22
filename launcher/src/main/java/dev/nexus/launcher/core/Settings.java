@@ -41,6 +41,8 @@ public final class Settings {
     public boolean checkUpdates = true;
     /** Animated photo background of the window (photos from <data>/backgrounds or the bundled ones). */
     public boolean photoBackground = true;
+    /** Animated liquid background; false restores the user's photo slideshow. */
+    public boolean liquidBackground = true;
     public double photoDim = 0.55;
     public boolean photoShuffle = true;
     /** Address of nexus-update.json entered by the user; empty = the address built into the launcher. */
