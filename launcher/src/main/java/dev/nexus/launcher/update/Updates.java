@@ -13,6 +13,7 @@ import dev.nexus.launcher.net.Progress;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,8 +29,7 @@ import java.util.zip.ZipFile;
 
 /**
  * Update checks and installation for the launcher itself and for NEXUS Client.
- * Nothing is installed without the user's consent: {@link #check()} only reads the manifest, the UI asks,
- * and only then {@link #installClient} / {@link #downloadLauncher} run.
+ * {@link #check()} only reads the manifest; installation verifies each downloaded package before use.
  */
 public final class Updates {
     /** Name of the program folder with the launcher classes, next to "Nexus Launcher.exe" and runtime\\. */
@@ -55,6 +55,22 @@ public final class Updates {
 
     public static boolean configured() {
         return UpdateManifest.address() != null;
+    }
+
+    /** Automatic installation requires HTTPS for the manifest and every package. HTTP remains available manually. */
+    public static boolean safeForAutomaticInstall(Check c) {
+        if (!https(UpdateManifest.address())) return false;
+        if (c.launcherFile() != null && !https(c.launcherFile().url())) return false;
+        return c.clientFiles().stream().allMatch(f -> https(f.file().url()));
+    }
+
+    private static boolean https(String url) {
+        try {
+            URI uri = URI.create(url);
+            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null;
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return false;
+        }
     }
 
     /** Downloads and evaluates nexus-update.json. */
@@ -229,6 +245,22 @@ public final class Updates {
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.appendTo(dir.resolve("updater.log").toFile()))
                 .start();
+    }
+
+    /** Refreshes the Windows exe from the verified, installed app package. Safe to retry on the next start. */
+    public static void refreshWindowsStarter() {
+        if (!OS.isWindows()) return;
+        Path app = currentAppDir();
+        if (app == null) return;
+        try {
+            if (WindowsStarter.refresh(app, 60, 500)) Log.info("Windows starter is up to date");
+            else Log.info("Windows starter not refreshed (not bundled, not installed, or another update is running)");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Log.warn("Windows starter update interrupted; will retry on next start");
+        } catch (IOException e) {
+            Log.warn("Cannot update Windows starter; will retry on next start: " + e.getMessage());
+        }
     }
 
     /** Deletes leftovers of earlier updates (helper copies, packages, the previous app folder). Busy files are skipped. */

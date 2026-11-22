@@ -2,6 +2,7 @@ package dev.nexus.launcher.ui;
 
 import dev.nexus.launcher.core.BuildInfo;
 import dev.nexus.launcher.core.Log;
+import dev.nexus.launcher.core.Settings;
 import dev.nexus.launcher.game.GameProcess;
 import dev.nexus.launcher.i18n.I18n;
 import dev.nexus.launcher.net.Progress;
@@ -26,9 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Bar above the page area that announces updates. Nothing is downloaded until the user presses "Update":
- * then new NEXUS Client jars are installed into the instances and the new launcher jar is downloaded; the
- * launcher restarts only after a second confirmation.
+ * Bar above the page area that reports update progress. Automatic installation waits for running games
+ * before restarting the launcher; a failed update remains available for a manual retry.
  */
 final class UpdateBanner extends HBox {
     private final MainWindow window;
@@ -41,6 +41,7 @@ final class UpdateBanner extends HBox {
     private Updates.Check check;
     private Path newLauncherApp;
     private Timeline poll;
+    private Timeline restartWhenIdle;
 
     UpdateBanner(MainWindow window) {
         this.window = window;
@@ -68,7 +69,7 @@ final class UpdateBanner extends HBox {
     // ---- states ----
 
     /** Shows what is available. Does nothing while an update is being installed or waits for a restart. */
-    void offer(Updates.Check c) {
+    void offer(Updates.Check c, boolean automatic) {
         if (isWorking() || newLauncherApp != null) return;
         if (!c.any()) {
             hideBanner();
@@ -89,11 +90,12 @@ final class UpdateBanner extends HBox {
             detail.setText(detail.getText() + "   ·   " + launcherManual(c));
         } else {
             action.setText(I18n.t("update.install"));
-            action.setOnAction(e -> install());
+            action.setOnAction(e -> install(false));
         }
         action.setDisable(false);
         close.setDisable(false);
         showBanner();
+        if (automatic && !manualOnly) install(true);
     }
 
     private void readyToRestart(String version) {
@@ -130,7 +132,7 @@ final class UpdateBanner extends HBox {
 
     // ---- actions ----
 
-    private void install() {
+    private void install(boolean automatic) {
         Updates.Check c = check;
         boolean launcher = c.launcherUpdate() && launcherManual(c) == null;
         Progress progress = new Progress();
@@ -159,7 +161,8 @@ final class UpdateBanner extends HBox {
             newLauncherApp = (Path) res[1];
             if (newLauncherApp != null) {
                 readyToRestart(c.launcherVersion());
-                Modal.confirm(I18n.t("update.restartTitle"), I18n.t("update.restartText", c.launcherVersion()),
+                if (automatic && Settings.get().checkUpdates) restartAutomaticallyWhenIdle();
+                else if (!automatic) Modal.confirm(I18n.t("update.restartTitle"), I18n.t("update.restartText", c.launcherVersion()),
                         I18n.t("update.restart"), false, this::restart);
             } else if (c.launcherUpdate()) {
                 manualLauncher(c);
@@ -170,7 +173,7 @@ final class UpdateBanner extends HBox {
             stopProgress();
             Log.warn("Update failed: " + err);
             Toasts.error(I18n.t("update.failed", Fx.errorText(err)));
-            offer(c);
+            offer(c, false);
         });
     }
 
@@ -182,6 +185,32 @@ final class UpdateBanner extends HBox {
         }
         if (!sync.skipped().isEmpty()) Toasts.info(I18n.t("update.clientSkipped", String.join(", ", sync.skipped())));
         window.instancesChanged();
+    }
+
+    private void restartAutomaticallyWhenIdle() {
+        if (GameProcess.runningCount() == 0) {
+            restart();
+            return;
+        }
+        detail.setText(I18n.t("update.waitForGames"));
+        close.setDisable(true);
+        restartWhenIdle = new Timeline(new KeyFrame(Duration.seconds(2), e -> {
+            if (!Settings.get().checkUpdates) {
+                stopRestartTimer();
+                readyToRestart(check.launcherVersion());
+            } else if (GameProcess.runningCount() == 0) {
+                stopRestartTimer();
+                restart();
+            }
+        }));
+        restartWhenIdle.setCycleCount(Animation.INDEFINITE);
+        restartWhenIdle.play();
+    }
+
+    private void stopRestartTimer() {
+        if (restartWhenIdle != null) restartWhenIdle.stop();
+        restartWhenIdle = null;
+        close.setDisable(false);
     }
 
     private void restart() {
