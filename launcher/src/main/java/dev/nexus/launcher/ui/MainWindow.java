@@ -17,7 +17,6 @@ import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.SnapshotParameters;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -25,10 +24,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
@@ -222,7 +217,6 @@ public final class MainWindow {
 
     public void applyAccent(String accent) {
         Theme.apply(root, accent);
-        stage.getIcons().setAll(appIcons());
     }
 
     public void openLink(String url) {
@@ -321,36 +315,17 @@ public final class MainWindow {
 
     private List<Image> appIcons() {
         List<Image> out = new ArrayList<>();
-        for (int size : new int[]{16, 32, 48, 64, 128, 256}) {
-            try {
-                out.add(renderLogo(size, Settings.get().accent));
-            } catch (Exception e) {
-                Log.warn("Cannot render the window icon: " + e.getMessage());
-                break;
+        try {
+            String url = MainWindow.class.getResource("/dev/nexus/launcher/img/app-icon.png").toExternalForm();
+            for (int size : new int[]{16, 32, 48, 64, 128, 256}) {
+                Image icon = new Image(url, size, size, true, true);
+                if (icon.isError()) throw new IllegalStateException("Cannot decode application icon", icon.getException());
+                out.add(icon);
             }
+        } catch (Exception e) {
+            Log.warn("Cannot load the window icon: " + e.getMessage());
         }
         return out;
-    }
-
-    static Image renderLogo(double size, String accent) {
-        String[] c = Theme.ACCENTS.getOrDefault(accent, Theme.ACCENTS.get("violet"));
-        SVGPath hex = new SVGPath();
-        hex.setContent(Icons.LOGO);
-        hex.setFill(new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE, new Stop(0, Color.web(c[0])), new Stop(1, Color.web(c[1]))));
-        double scale = size / 24.0;
-        hex.setScaleX(scale);
-        hex.setScaleY(scale);
-        StackPane p = new StackPane(new javafx.scene.Group(hex));
-        p.setMinSize(size, size);
-        p.setPrefSize(size, size);
-        p.setMaxSize(size, size);
-        p.setStyle("-fx-background-color: transparent;");
-        SnapshotParameters sp = new SnapshotParameters();
-        sp.setFill(Color.TRANSPARENT);
-        new Scene(p, size, size, Color.TRANSPARENT);
-        p.applyCss();
-        p.layout();
-        return p.snapshot(sp, null);
     }
 
     /** A logo node for the UI (sidebar, about page). */

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Generates the Windows assets of NEXUS Launcher from the vector logo (same shape as Icons.LOGO):
+"""Generates the Windows assets of NEXUS Launcher:
 
-  nexus.ico            - exe / shortcut / installer icon (16..256 px)
+  nexus.ico            - exe / shortcut / installer icon from the app image (16..256 px)
   installer-side.bmp   - 164x314 picture of the installer welcome/finish pages
   installer-header.bmp - 150x57 picture in the installer page header
+
+The installer illustrations retain the NEXUS vector logo (same shape as Icons.LOGO).
 
 Usage: python3 packaging/windows/gen_assets.py   (requires Pillow)
 """
@@ -70,9 +72,12 @@ def glow(base, center, radius, color, alpha):
 
 def main():
     sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
-    big = logo(256)
-    big.save(os.path.join(HERE, "nexus.ico"), sizes=[(s, s) for s in sizes],
-             append_images=[logo(s) for s in sizes if s != 256])
+    # The same source image is loaded by JavaFX for the running window.
+    icon_path = os.path.join(HERE, "..", "..", "src", "main", "resources",
+                             "dev", "nexus", "launcher", "img", "app-icon.png")
+    with Image.open(icon_path) as icon:
+        big = icon.convert("RGBA").resize((256, 256), Image.Resampling.LANCZOS)
+        big.save(os.path.join(HERE, "nexus.ico"), sizes=[(s, s) for s in sizes])
 
     # welcome / finish page picture
     side = gradient((164, 314), BG_TOP, BG_BOTTOM, diagonal=False)

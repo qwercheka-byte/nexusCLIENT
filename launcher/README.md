@@ -169,7 +169,7 @@ runtime\bin\java.exe -cp app dev.nexus.launcher.Main --launch "<сборка>"  
 Задача `jar` отключена — лаунчер нигде не упаковывается в jar. NEXUS Client собирается из `../client` (`-Pclient_dir=…` — другая папка, `-PclientPackage=<zip>` — взять готовый пакет).
 Runtime собирается `jlink` из jmods Windows: Temurin JDK той же версии, что и JDK, на котором идёт сборка (jlink принимает только свои jmods), скачивается с api.adoptium.net, JavaFX jmods — с gluonhq.com. Из образа удаляются два служебных jar, которые jlink кладёт всегда (`lib/jrt-fs.jar`, `lib/javafx-swt.jar`): этому runtime они не нужны.
 Для `Nexus Launcher.exe` нужен MinGW-w64 (`x86_64-w64-mingw32-gcc`, в Debian/Ubuntu пакет `gcc-mingw-w64-x86-64`, в Windows — MSYS2), для установщика — NSIS 3 (`makensis`, пакет `nsis`).
-Иконка и картинки установщика генерируются скриптом `packaging/windows/gen_assets.py` (нужен Pillow).
+Иконка окна хранится в `src/main/resources/dev/nexus/launcher/img/app-icon.png`. Windows-иконка для exe и установщика генерируется из неё скриптом `packaging/windows/gen_assets.py` (нужен Pillow); скрипт также генерирует картинки установщика. После замены иконки нужно пересобрать установщик или portable-версию: автообновление меняет только папку `app` и не заменяет иконку самого exe.
 
 ## Что не сделано или не проверено
 
