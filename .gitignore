@@ -5,3 +5,5 @@ launcher/dist-release/
 client/run/
 client/recovery-1.0.34/artifacts/
 dist-out/
+
+**/__pycache__/
