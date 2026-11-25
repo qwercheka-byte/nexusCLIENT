@@ -5,18 +5,18 @@ on:
     paths:
       - 'launcher/**'
       - 'client/**'
-      - 'updates/nexus-client-1.0.34-mc1.21.11.zip'
+      - 'updates/nexus-client-1.0.35-mc1.21.11.zip'
       - '.github/workflows/launcher-build.yml'
   pull_request:
     paths:
       - 'launcher/**'
       - 'client/**'
-      - 'updates/nexus-client-1.0.34-mc1.21.11.zip'
+      - 'updates/nexus-client-1.0.35-mc1.21.11.zip'
       - '.github/workflows/launcher-build.yml'
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish release v1.3.20 after the PR has been merged'
+        description: 'Publish release v1.3.21 after the PR has been merged'
         type: boolean
         required: true
         default: false
@@ -25,6 +25,30 @@ permissions:
   contents: read
 
 jobs:
+  recovery-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify patched client and run tests against packaged helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 client/recovery-1.0.34/build.py --version 1.0.35 --output "$RUNNER_TEMP/rebuilt.zip"
+          python3 client/recovery-1.0.34/verify_release.py
+          mkdir -p "$RUNNER_TEMP/testclasses" "$RUNNER_TEMP/patchtools" "$RUNNER_TEMP/patchclasses"
+          javac --release 17 -d "$RUNNER_TEMP/testclasses" $(find client/recovery-1.0.34/stubs client/recovery-1.0.34/tests -name '*.java') client/recovery-1.0.34/src/dev/nexus/recovery/*.java
+          (cd "$RUNNER_TEMP/testclasses" && unzip -o "$GITHUB_WORKSPACE/updates/nexus-client-1.0.35-mc1.21.11.zip" 'dev/nexus/recovery/*' > /dev/null)
+          java -Xverify:all -cp "$RUNNER_TEMP/testclasses" HudMotionTest
+          java -Xverify:all -cp "$RUNNER_TEMP/testclasses" AdapterTest
+          javac --add-exports java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED --add-exports java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED --add-exports java.base/jdk.internal.org.objectweb.asm.tree.analysis=ALL-UNNAMED -d "$RUNNER_TEMP/patchtools" client/recovery-1.0.34/tools/Verify.java
+          (cd "$RUNNER_TEMP/patchclasses" && unzip -o "$GITHUB_WORKSPACE/updates/nexus-client-1.0.35-mc1.21.11.zip" dev/nexus/client/hud/RShiftHud.class dev/nexus/client/ui/panel/RShiftPanel.class > /dev/null)
+          java --add-exports java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED --add-exports java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED --add-exports java.base/jdk.internal.org.objectweb.asm.tree.analysis=ALL-UNNAMED -cp "$RUNNER_TEMP/patchtools" Verify "$RUNNER_TEMP/patchclasses/dev/nexus/client/hud/RShiftHud.class" "$RUNNER_TEMP/patchclasses/dev/nexus/client/ui/panel/RShiftPanel.class"
+
   windows-launcher:
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -40,8 +64,8 @@ jobs:
         working-directory: launcher
         run: |
           sh ./gradlew testUpdateMechanics testBrandLogo testLiquidMotion release \
-            -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip \
-            -PclientVersion=1.0.34
+            -PclientPackage=../updates/nexus-client-1.0.35-mc1.21.11.zip \
+            -PclientVersion=1.0.35
       - name: Upload release files
         uses: actions/upload-artifact@v4
         with:
@@ -62,11 +86,11 @@ jobs:
       - name: Test updater on Windows
         working-directory: launcher
         shell: cmd
-        run: gradlew.bat testUpdateMechanics testBrandLogo testLiquidMotion testLiquidFx -PclientPackage=../updates/nexus-client-1.0.34-mc1.21.11.zip -PclientVersion=1.0.34
+        run: gradlew.bat testUpdateMechanics testBrandLogo testLiquidMotion testLiquidFx -PclientPackage=../updates/nexus-client-1.0.35-mc1.21.11.zip -PclientVersion=1.0.35
 
   publish:
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    needs: [windows-launcher, windows-smoke]
+    needs: [recovery-validation, windows-launcher, windows-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -99,18 +123,25 @@ jobs:
           root = Path('release')
           manifest_path = root / 'nexus-update.json'
           manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-          assert manifest['launcher']['version'] == '1.2.11'
-          assert manifest['client']['version'] == '1.0.34'
-          app = root / 'updates/nexus-launcher-1.2.11-app.zip'
+          assert manifest['launcher']['version'] == '1.2.12'
+          assert manifest['client']['version'] == '1.0.35'
+          app = root / 'updates/nexus-launcher-1.2.12-app.zip'
           entry = manifest['launcher']['files']['win-app']
           assert hashlib.sha256(app.read_bytes()).hexdigest() == entry['sha256']
           assert app.stat().st_size == entry['size']
-          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.20/{app.name}"
+          entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.21/{app.name}"
+          client = root / 'updates/nexus-client-1.0.35-mc1.21.11.zip'
+          client_entry = manifest['client']['files']['1.21.11']
+          assert hashlib.sha256(client.read_bytes()).hexdigest() == client_entry['sha256']
+          assert client.stat().st_size == client_entry['size']
+          assert client_entry['sha256'] == '9a2b40ba557222525693e9366c3ae6af2005e6dd822602029445009a03ea1d71'
+          client_entry['url'] = f"https://github.com/{os.environ['GH_REPO']}/releases/download/v1.3.21/{client.name}"
           manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           PY
-          gh release create v1.3.20 --target "$TARGET_SHA" --draft \
-            --title 'Nexus Launcher 1.2.11 — анимированный фон' \
-            --notes 'Новый фиолетовый фон с плавными волнами. Прежний фотофон можно вернуть в настройках.' \
+          gh release create v1.3.21 --target "$TARGET_SHA" --draft \
+            --title 'Nexus Client 1.0.35 — анимация HUD и меню' \
+            --notes 'Плавное перетаскивание HUD, исправленные рамки и анимация открытия меню RShift. Внимание: версия не проверена запуском в Minecraft.' \
             'release/Nexus Launcher.exe' 'release/Nexus Launcher.zip' \
-            release/nexus-update.json release/updates/nexus-launcher-1.2.11-app.zip
-          gh release edit v1.3.20 --draft=false --latest
+            release/nexus-update.json release/updates/nexus-launcher-1.2.12-app.zip \
+            release/updates/nexus-client-1.0.35-mc1.21.11.zip
+          gh release edit v1.3.21 --draft=false --latest
